@@ -1,0 +1,65 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2015-2018 by exopy_qm Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+import os
+from textwrap import fill
+
+from enaml.widgets.api import Field, Label, ToolButton, FileDialogEx
+from enaml.layout.api import hbox, vbox, grid, align
+from exopy.instruments.api import BaseConnection
+from exopy.app.icons.api import get_icon
+
+
+enamldef QmConnection(BaseConnection):
+    #: Reference to the application workbench.
+    attr workbench
+
+    alias lib_dir : lib_val.text
+
+    alias header_dir : header_val.text
+
+    alias serial_number : sr_val.text
+
+    enabled << not read_only
+    title = self.declaration.id
+
+    gather_infos => ():
+        return {'gateway_ip': lib_dir, 'gateway_port': header_dir,
+                'config_file_path': serial_number}
+
+    constraints = [grid(
+                        [lib_lab, lib_val, lib_val],
+                        [header_lab, header_val, header_val],
+                        [sr_lab, sr_val, sr_exp]
+                        )]
+
+    Label: lib_lab:
+        text = 'Gateway IP'
+    Field: lib_val:
+        tool_tip = ('If left empty the program will use the IP from the qm-app')
+        placeholder = '255.255.255.255'
+
+    Label: header_lab:
+        text = 'Gateway port'
+    Field: header_val:
+        tool_tip = ('If left empty the program will use the default port ')
+        placeholder = "9510"
+
+    Label: sr_lab:
+        text = 'Config file path'
+    Field: sr_val:
+        tool_tip = fill('The path to the configuration of the qm.')
+
+    ToolButton: sr_exp:
+        hug_width = 'strong'
+        icon = get_icon(workbench, 'folder-open')
+        clicked ::
+            filter =['*.py']
+            path = FileDialogEx.get_open_file_name(name_filters=filter)
+            if path:
+                sr_val.text = path

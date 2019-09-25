@@ -1,0 +1,134 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2015-2018 by exopy_qm Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+"""The manifest contributing the extensions to the main application.
+
+"""
+import os
+
+import enaml
+from enaml.workbench.api import PluginManifest, Extension
+from exopy.app.api import AppStartup
+from exopy.tasks.api import Tasks, Task, Interface
+from exopy.instruments.api import (Starter, Connection, Drivers, Driver,
+                                  Settings)
+
+#from .instruments.starters.legacy_starter import (VisaLegacyStarter,
+#                                                  DllLegacyStarter)
+
+from .instruments.starters.PythonStarter import (PythonStarter)
+
+
+enamldef QmManifest(PluginManifest):
+    """The manifest declaring the extension points to the Exopy.
+
+    """
+    id = 'exopy_qm_qm'
+
+    Extension:
+        id = 'exopy_qm.instruments.starters'
+        point = 'exopy.instruments.starters'
+        Starter:
+            id = 'exopy_qm.starter.python'
+            description = ('My first starter!')
+            starter = PythonStarter()
+
+    Extension:
+        id = 'exopy_qm.instruments.connections'
+        point = 'exopy.instruments.connections'
+        Connection:
+            id = 'QmConnection'
+            description = ('Connecting to the qmm.')
+            new => (workbench, defaults, read_only):
+                with enaml.imports():
+                    from .instruments.connections.qm_connection\
+                        import QmConnection
+                defaults = dict(lib_dir=defaults.get('gateway_ip', ''),
+                                header_dir=defaults.get('gateway_port',''),
+                                serial_number=defaults.get('config_file_path',''))
+                return QmConnection(read_only=read_only, declaration=self,
+                                     workbench=workbench, **defaults)
+
+
+    Extension:
+        id = 'exopy_qm.instruments.drivers'
+        point = 'exopy.instruments.drivers'
+
+        Drivers:
+            path = 'exopy_qm.instruments.drivers'
+            architecture = 'QMArchitecture'
+            manufacturer = 'QM'
+
+            Driver:
+                driver = 'QuantumMachine:QuantumMachine'
+                model = 'QuantumMachine_v1'
+                kind = "AWG"
+                starter = 'exopy_qm.starter.python'
+                connections = {'QmConnection': {}}
+
+
+    Extension:
+        id = 'exopy_qm.tasks'
+        point = 'exopy.tasks.declarations'
+        Tasks:
+            path = 'exopy_qm.tasks.tasks'
+            group = "instr"
+            Task:
+                task = 'ExecuteProgramTask:ExecuteProgramTask'
+                view = 'views.ExecuteProgramView:ExecuteProgramView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+
+            Task:
+                task = 'ResumeProgramTask:ResumeProgramTask'
+                view = 'views.ResumeProgramView:ResumeProgramView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+
+            Task:
+                task = 'SetOutputDcOffsetByQeTask:SetOutputDcOffsetByQeTask'
+                view = 'views.SetOutputDcOffsetByQeView:SetOutputDcOffsetByQeView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+
+            Task:
+                task = 'SetInputDcOffsetByQeTask:SetInputDcOffsetByQeTask'
+                view = 'views.SetInputDcOffsetByQeView:SetInputDcOffsetByQeView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+
+            Task:
+                task = 'GetResultsTask:GetResultsTask'
+                view = 'views.GetResultsView:GetResultsView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+
+            Task:
+                task = 'SetIOValuesTask:SetIOValuesTask'
+                view = 'views.SetIOValuesView:SetIOValuesView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+
+            Task:
+                task = 'GetIOValuesTask:GetIOValuesTask'
+                view = 'views.GetIOValuesView:GetIOValuesView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+
+            Task:
+                task = 'SetMixerCorrectionTask:SetMixerCorrectionTask'
+                view = 'views.SetMixerCorrectionView:SetMixerCorrectionView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+
+            Task:
+                task = 'SetIntermediateFrequencyTask:SetIntermediateFrequencyTask'
+                view = 'views.SetIntermediateFrequencyView:SetIntermediateFrequencyView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+
+            Task:
+                task = 'SetDigitalDelayTask:SetDigitalDelayTask'
+                view = 'views.SetDigitalDelayView:SetDigitalDelayView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+
+            Task:
+                task = 'SetDigitalBufferTask:SetDigitalBufferTask'
+                view = 'views.SetDigitalBufferView:SetDigitalBufferView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']

@@ -1,0 +1,24 @@
+from textwrap import fill
+
+from enaml.widgets.api import (GroupBox, Label, Field, ObjectCombo)
+from enaml.stdlib.fields import FloatField, Field
+from enaml.layout.api import factory
+
+from exopy_qm.utils.layouts import auto_grid_layout
+from .base_instr_view import InstrView
+
+
+enamldef SetIntermediateFrequencyView(InstrView): view:
+    constraints = [factory(auto_grid_layout)]
+
+    Label:
+        text = "Element"
+    Field:
+        text := task.element
+        tool_tip = fill("Element's name")
+
+    Label:
+        text = "Intermediate frequency"
+    FloatField:
+        value := task.intermediate_frequency
+        tool_tip = fill("The intermediate frequency")

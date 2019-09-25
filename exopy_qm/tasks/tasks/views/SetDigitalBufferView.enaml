@@ -1,0 +1,30 @@
+from textwrap import fill
+
+from enaml.widgets.api import (GroupBox, Label, Field, ObjectCombo)
+from enaml.stdlib.fields import FloatField, Field, IntField
+from enaml.layout.api import factory
+
+from exopy_qm.utils.layouts import auto_grid_layout
+from .base_instr_view import InstrView
+
+
+enamldef SetDigitalBufferView(InstrView): view:
+    constraints = [factory(auto_grid_layout)]
+
+    Label:
+        text = "Element"
+    Field:
+        text := task.element
+        tool_tip = fill("Element's name")
+
+    Label:
+        text = "Digital Input"
+    Field:
+        text := task.digital_input
+        tool_tip = fill("The input port name")
+
+    Label:
+        text = "Buffer"
+    IntField:
+        value := task.buffer
+        tool_tip = fill("The buffer")

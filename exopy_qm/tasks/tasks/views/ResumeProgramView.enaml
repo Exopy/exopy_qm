@@ -1,0 +1,16 @@
+from textwrap import fill
+
+from enaml.widgets.api import (GroupBox, Label, Field, ObjectCombo)
+from enaml.stdlib.fields import FloatField, Field
+from enaml.layout.api import factory
+
+from exopy_qm.utils.layouts import auto_grid_layout
+from .base_instr_view import InstrView
+
+
+enamldef ResumeProgramView(InstrView): view:
+    """View for the DCVoltMeasTask.
+
+    """
+    constraints = [factory(auto_grid_layout)]
+

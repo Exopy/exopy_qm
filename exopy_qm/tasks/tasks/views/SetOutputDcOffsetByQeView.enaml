@@ -1,0 +1,33 @@
+from textwrap import fill
+
+from enaml.widgets.api import (GroupBox, Label, Field, ObjectCombo)
+from enaml.stdlib.fields import FloatField, Field
+from enaml.layout.api import factory
+
+from exopy_qm.utils.layouts import auto_grid_layout
+from .base_instr_view import InstrView
+
+from exopy.tasks.api import EVALUATER_TOOLTIP
+from exopy.utils.widgets.qt_completers import QtLineCompleter
+
+enamldef SetOutputDcOffsetByQeView(InstrView): view:
+    constraints = [factory(auto_grid_layout)]
+
+    Label:
+        text = "Element"
+    Field:
+        text := task.element
+        tool_tip = fill("Element's name")
+
+    Label:
+        text = "Input"
+    Field:
+        text := task.input
+        tool_tip = fill("The input port whose offset will be changed")
+
+    Label:
+        text = "Offset"
+    QtLineCompleter:
+        text := task.offset
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = EVALUATER_TOOLTIP

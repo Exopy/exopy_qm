@@ -1,0 +1,63 @@
+from textwrap import fill
+
+from enaml.widgets.api import (GroupBox, Label, Field, ObjectCombo)
+from enaml.stdlib.fields import FloatField, Field, IntField
+from enaml.layout.api import factory
+
+from exopy_qm.utils.layouts import auto_grid_layout
+from .base_instr_view import InstrView
+
+from exopy.tasks.api import EVALUATER_TOOLTIP
+from exopy.utils.widgets.qt_completers import QtLineCompleter
+
+enamldef SetMixerCorrectionView(InstrView): view:
+    constraints = [factory(auto_grid_layout)]
+
+    Label:
+        text = "Mixer"
+    Field:
+        text := task.mixer
+        tool_tip = fill("Mixer's name")
+
+    Label:
+        text = "Intermediate frequency"
+    QtLineCompleter:
+        text := task.intermediate_frequency
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = EVALUATER_TOOLTIP
+
+    Label:
+        text = "LO frequency"
+    QtLineCompleter:
+        text := task.lo_frequency
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = EVALUATER_TOOLTIP
+
+    Label:
+        text = "V00"
+    QtLineCompleter:
+        text := task.v00
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = EVALUATER_TOOLTIP
+
+    Label:
+        text = "V01"
+    QtLineCompleter:
+        text := task.v01
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = EVALUATER_TOOLTIP
+
+    Label:
+        text = "V10"
+
+    QtLineCompleter:
+        text := task.v10
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = EVALUATER_TOOLTIP
+
+    Label:
+        text = "V11"
+    QtLineCompleter:
+        text := task.v11
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = EVALUATER_TOOLTIP

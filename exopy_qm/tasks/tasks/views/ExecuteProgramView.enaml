@@ -1,0 +1,48 @@
+from textwrap import fill
+
+from enaml.widgets.api import (GroupBox, Label, Field, ObjectCombo, ToolButton, FileDialogEx, PushButton)
+from enaml.stdlib.fields import FloatField, Field, IntField
+from enaml.layout.api import factory, grid
+from exopy.app.icons.api import get_icon
+
+from exopy_qm.utils.layouts import auto_grid_layout
+from .base_instr_view import InstrView
+
+
+enamldef ExecuteProgramView(InstrView): view:
+    """View for the DCVoltMeasTask.
+
+    """
+    constraints = [factory(auto_grid_layout)]
+
+#    GroupBox: program_path:
+    Label: path_label:
+        text = "Path to program file"
+    Field: path_val:
+        text := task.path_to_program_file
+        tool_tip = fill("Path to program file")
+
+    Label:
+        text = ""
+
+    ToolButton: path_exp:
+        hug_width = 'strong'
+        icon = get_icon(workbench, 'folder-open')
+        #text = 'E'
+        clicked ::
+            filter =['*.py']
+            path = FileDialogEx.get_open_file_name(name_filters=filter)
+            if path:
+                path_val.text = path
+
+    Label:
+        text = "Duration limit"
+    IntField:
+        value := task.duration_limit
+        tool_tip = fill("The duration limit")
+
+    Label:
+        text = "Data limit"
+    IntField:
+        value := task.data_limit
+        tool_tip = fill("The data limit")

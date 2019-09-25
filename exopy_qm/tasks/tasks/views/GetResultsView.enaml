@@ -1,0 +1,35 @@
+from textwrap import fill
+
+from enaml.widgets.api import (GroupBox, Label, Field, ObjectCombo, ToolButton, FileDialogEx, PushButton)
+from enaml.stdlib.fields import FloatField, Field
+from enaml.layout.api import factory
+from exopy.app.icons.api import get_icon
+
+from exopy_qm.utils.layouts import auto_grid_layout
+from .base_instr_view import InstrView
+
+
+enamldef GetResultsView(InstrView): view:
+    """View for the GetResultsTask.
+
+    """
+    constraints = [factory(auto_grid_layout)]
+
+    Label: path_label:
+        text = "Save results to"
+    Field: path_val:
+        text := task.results_file_path
+        tool_tip = fill("Path to results file")
+
+#    Label:
+#        text = ""
+#
+#    ToolButton: path_exp:
+#        hug_width = 'strong'
+#        icon = get_icon(workbench, 'folder-open')
+#        #text = 'E'
+#        clicked ::
+#            filter =['*.py']
+#            path = FileDialogEx.get_open_file_name(file_mode='directory', show_dirs_only=True)
+#            if path:
+#                path_val.text = path

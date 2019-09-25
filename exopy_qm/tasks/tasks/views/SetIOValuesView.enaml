@@ -1,0 +1,45 @@
+from textwrap import fill
+
+from enaml.layout.api import factory
+from enaml.core.api import Conditional
+from enaml.widgets.api import (Label, Field, CheckBox)
+from enaml.stdlib.fields import Field
+
+from exopy_qm.utils.layouts import auto_grid_layout
+from .base_instr_view import InstrView
+
+
+enamldef SetIOValuesView(InstrView): view:
+
+    constraints = [factory(auto_grid_layout)]
+
+    Label:
+        text = 'Set IO 1'
+    CheckBox:
+        checked := task.set_io_1
+        tool_tip = fill('Enable setting of the first IO value')
+
+    Conditional:
+        condition << task.set_io_1
+        Label:
+            text = 'IO 1 value'
+        Field:
+            hug_width = 'strong'
+            text := task.io_1_value
+            tool_tip = fill('The value to set. Can be either bool, fixed or int.')
+
+
+    Label:
+        text = 'Set IO 2'
+    CheckBox:
+        checked := task.set_io_2
+        tool_tip = fill('Enable setting of the second IO value')
+
+    Conditional:
+        condition << task.set_io_2
+        Label:
+            text = 'IO 2 value'
+        Field:
+            hug_width = 'strong'
+            text := task.io_2_value
+            tool_tip = fill('The value to set. Can be either bool, fixed or int.')

@@ -1,0 +1,26 @@
+from textwrap import fill
+
+from enaml.layout.api import factory
+from enaml.core.api import Conditional
+from enaml.widgets.api import (Label, Field, CheckBox)
+from enaml.stdlib.fields import Field
+
+from exopy_qm.utils.layouts import auto_grid_layout
+from .base_instr_view import InstrView
+
+
+enamldef GetIOValuesView(InstrView): view:
+
+    constraints = [factory(auto_grid_layout)]
+
+    Label:
+        text = 'Get IO 1'
+    CheckBox:
+        checked := task.get_io_1
+        tool_tip = fill('Gets the first IO value')
+
+    Label:
+        text = 'Get IO 2'
+    CheckBox:
+        checked := task.get_io_2
+        tool_tip = fill('Gets the second IO value')
