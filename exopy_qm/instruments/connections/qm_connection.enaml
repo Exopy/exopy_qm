@@ -23,19 +23,15 @@ enamldef QmConnection(BaseConnection):
 
     alias header_dir : header_val.text
 
-    alias serial_number : sr_val.text
-
     enabled << not read_only
     title = self.declaration.id
 
     gather_infos => ():
-        return {'gateway_ip': lib_dir, 'gateway_port': header_dir,
-                'config_file_path': serial_number}
+        return {'gateway_ip': lib_dir, 'gateway_port': header_dir}
 
     constraints = [grid(
                         [lib_lab, lib_val, lib_val],
-                        [header_lab, header_val, header_val],
-                        [sr_lab, sr_val, sr_exp]
+                        [header_lab, header_val, header_val]
                         )]
 
     Label: lib_lab:
@@ -49,17 +45,3 @@ enamldef QmConnection(BaseConnection):
     Field: header_val:
         tool_tip = ('If left empty the program will use the default port ')
         placeholder = "9510"
-
-    Label: sr_lab:
-        text = 'Config file path'
-    Field: sr_val:
-        tool_tip = fill('The path to the configuration of the qm.')
-
-    ToolButton: sr_exp:
-        hug_width = 'strong'
-        icon = get_icon(workbench, 'folder-open')
-        clicked ::
-            filter =['*.py']
-            path = FileDialogEx.get_open_file_name(name_filters=filter)
-            if path:
-                sr_val.text = path
