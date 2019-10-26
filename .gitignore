@@ -2,3 +2,5 @@ dist
 *.egg-info
 *.pyc
 .idea
+__pycache__
+__enamlcache__
