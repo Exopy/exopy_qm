@@ -57,7 +57,8 @@ class QuantumMachine(object):
         self.qmObj.close()
 
     def execute_program(self, prog, duration_limit, data_limit):
-        self.job = self.qmObj.execute(prog, duration_limit=duration_limit, data_limit=data_limit)
+        self.job = self.qmObj.execute(prog, duration_limit=duration_limit, data_limit=data_limit,
+                                      force_execution=True)
 
     def resume(self):
         self.job.resume()
