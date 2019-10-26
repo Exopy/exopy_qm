@@ -1,0 +1,107 @@
+from textwrap import fill
+
+from enaml.core.api import Looper
+from enaml.widgets.api import (GroupBox, Label, Field, ObjectCombo, ToolButton, FileDialogEx, PushButton, Container)
+from enaml.stdlib.fields import FloatField, Field, IntField
+from enaml.layout.api import hbox, vbox, spacer, align
+from exopy.app.icons.api import get_icon
+from exopy.tasks.api import EVALUATER_TOOLTIP
+from exopy.utils.widgets.qt_completers import QtLineCompleter
+
+
+from .base_instr_view import InstrView
+
+
+enamldef ConfigureExecuteView(InstrView): view:
+    """View for the ConfigureExecuteTask.
+
+    """
+    constraints = [vbox(hbox(instr_label, instr_selection, wait_label,
+                             wait_field, duration_label, duration_field,
+                             data_label, data_field),
+                        hbox(config_path_label, config_path_val,
+                             config_path_exp, refresh_config),
+                        hbox(program_path_label, program_path_val,
+                             program_path_exp, refresh_program),
+                        param_list),
+                    align('left', config_path_val, program_path_val),
+                    align('left', refresh_config, refresh_program)]
+
+
+    Label: config_path_label:
+        text = "Path to the configuration file"
+    Field: config_path_val:
+        text := task.path_to_config_file
+        tool_tip = fill("Path to the configuration file")
+    ToolButton: config_path_exp:
+        hug_width = 'strong'
+        icon = get_icon(workbench, 'folder-open')
+        clicked ::
+            filter =['*.py']
+            path = FileDialogEx.get_open_file_name(name_filters=filter)
+            if path:
+                config_path_val.text = path
+
+    PushButton: refresh_config:
+        text = 'Refresh'
+        clicked ::
+            task._post_setattr_path_to_config_file(config_path_val.text, config_path_val.text)
+
+
+    Label: program_path_label:
+        text = "Path to the program file"
+    Field: program_path_val:
+        text := task.path_to_program_file
+        tool_tip = fill("Path to QUA program file")
+
+    ToolButton: program_path_exp:
+        hug_width = 'strong'
+        icon = get_icon(workbench, 'folder-open')
+        clicked ::
+            filter =['*.py']
+            path = FileDialogEx.get_open_file_name(name_filters=filter)
+            if path:
+                program_path_val.text = path
+
+    Label: duration_label:
+        text = "Duration limit"
+    IntField: duration_field:
+        value := task.duration_limit
+        tool_tip = fill("The duration limit")
+
+    Label: data_label:
+        text = "Data limit"
+    IntField: data_field:
+        value := task.data_limit
+        tool_tip = fill("The data limit")
+
+    PushButton: refresh_program:
+        text = 'Refresh'
+        clicked ::
+            task._post_setattr_path_to_program_file(program_path_val.text, program_path_val.text)
+
+    Label: wait_label:
+        text = "Waiting time (s)"
+    FloatField: wait_field:
+        value := task.wait_time
+        tool_tip = fill("Due to a current QM limitation, you have to enter a lower bound for \
+                         the experiment time. Exopy will wait for that amount of time before \
+                         fetching the results from the server.")
+
+    Container: param_list:
+        Looper:
+            iterable << task.parameters
+            Container:
+                constraints = [hbox(label_loop, field_loop, label_comment),
+                               align('v_center', label_loop, field_loop, label_comment)]
+                padding = 2
+                Label: label_loop:
+                    text = loop_item
+                QtLineCompleter: field_loop:
+                    hug_width = 'ignore'
+                    text = task.parameters[loop_item]
+                    text >> task.parameters[loop_item]
+                    entries_updater << task.list_accessible_database_entries
+                    tool_tip = EVALUATER_TOOLTIP
+                Label: label_comment:
+                    text = task.comments[loop_item]

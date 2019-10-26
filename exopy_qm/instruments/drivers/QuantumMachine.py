@@ -1,15 +1,12 @@
-import importlib
 import sys
 import logging
 from qm.QuantumMachinesManager import QuantumMachinesManager
-
-from exopy_qm.utils.dynamic_importer import *
 
 
 def requires_config(func):
     def wrapper(self, *args, **kwargs):
         if self.qmObj:
-            func()
+            func(self, *args, **kwargs)
         else:
             log = logging.getLogger()
             log.error("Couldn't run the QUA program because no configuration was set")
