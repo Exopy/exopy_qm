@@ -37,10 +37,10 @@ class ConfigureExecuteTask(InstrumentTask):
     path_to_config_file = Unicode().tag(pref=True)
 
     #: Module containing the configuration file
-    config_module = Value()
+    _config_module = Value()
 
     #: Module containing the program file
-    program_module = Value()
+    _program_module = Value()
 
     #: Path to the python program file
     path_to_program_file = Unicode().tag(pref=True)
@@ -64,8 +64,8 @@ class ConfigureExecuteTask(InstrumentTask):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.config_module = None
-        self.program_module = None
+        self._config_module = None
+        self._program_module = None
         self.parameters = {}
         self.comments = {}
 
@@ -76,17 +76,30 @@ class ConfigureExecuteTask(InstrumentTask):
         if not test:
             return test, traceback
 
-        if self.config_module is None or self.program_module is None:
+        if self._config_module is None or self._program_module is None:
             msg = ('Config or program missing')
             traceback[self.get_error_path() + '-trace'] = msg
+
+        for key, value in self.parameters.items():
+            try:
+                self.format_and_eval_string(value)
+            except:
+                msg = ("Couldn't evaluate {}")
+                traceback[self.get_error_path() + '-trace'] = msg.format(value)
 
         return test, traceback
 
     def perform(self):
         self._update_parameters()
 
-        config_to_set = self.config_module.get_config(self.parameters)
-        program_to_execute = self.program_module.get_prog(self.parameters)
+        # Evaluate all parameters
+        evaluated_parameters = {}
+        for key, value in self.parameters.items():
+            evaluated_parameters[key] = self.format_and_eval_string(value)
+
+        config_to_set = self._config_module.get_config(evaluated_parameters)
+        program_to_execute = self._program_module.get_prog(
+            evaluated_parameters)
 
         self.driver.set_config(config_to_set)
         self.driver.execute_program(
@@ -132,22 +145,23 @@ class ConfigureExecuteTask(InstrumentTask):
             importlib.invalidate_caches()
             spec = importlib.util.spec_from_file_location(
                 "", self.path_to_program_file)
-            self.program_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(self.program_module)
+            self._program_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(self._program_module)
         else:
-            self.program_module = None
+            self._program_module = None
 
         self._update_parameters()
+        self._find_variables()
 
     def _post_setattr_path_to_config_file(self, old, new):
         if new or new != '':
             importlib.invalidate_caches()
             spec = importlib.util.spec_from_file_location(
                 "", self.path_to_config_file)
-            self.config_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(self.config_module)
+            self._config_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(self._config_module)
         else:
-            self.config_module = None
+            self._config_module = None
 
         self._update_parameters()
 
@@ -158,12 +172,12 @@ class ConfigureExecuteTask(InstrumentTask):
         params_config, params_program = {}, {}
         comments_config, comments_program = {}, {}
 
-        if self.config_module:
+        if self._config_module:
             params_config, comments_config = self._parse_parameters(
-                self.config_module.get_parameters())
-        if self.program_module:
+                self._config_module.get_parameters())
+        if self._program_module:
             params_program, comments_program = self._parse_parameters(
-                self.program_module.get_parameters())
+                self._program_module.get_parameters())
 
         comments_config.update(comments_program)
         self.comments = comments_config
