@@ -1,7 +1,8 @@
 import importlib
 import importlib.util
+import ast
 
-from exopy.tasks.api import (InstrumentTask)
+from exopy.tasks.api import InstrumentTask
 from atom.api import Unicode, Long, Float, Value, Typed, set_default
 import sys
 import os
@@ -60,8 +61,6 @@ class ConfigureExecuteTask(InstrumentTask):
     #: Comments associated with the parameters
     comments = Typed(dict).tag(pref=True)
 
-    database_entries = set_default({'variables': {}, 'raw': {}})
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._config_module = None
@@ -107,38 +106,25 @@ class ConfigureExecuteTask(InstrumentTask):
         time.sleep(self.wait_time)
         results = self.driver.get_results()
 
-        var_dict = {}
         for k in results.variable_results.__dict__:
-            data = getattr(results.variable_results, k).data
-            ts_in_ns = getattr(results.variable_results, k).ts_in_ns
-            possible_data_loss = getattr(
-                results.variable_results, k).possible_data_loss
+            self.write_in_database(
+                'variable_' + k, getattr(results.variable_results, k).data)
+            if getattr(results.variable_results, k).possible_data_loss:
+                log = logging.getLogger()
+                log.warning(
+                    f"[Variable {k}] Data loss detected, you should increase the waiting time")
 
-            var_dict[k] = {
-                "data": data,
-                "ts_in_ns": ts_in_ns,
-                "possible_data_loss": possible_data_loss
-            }
-
-        self.write_in_database('variables', var_dict)
-
-        # Try to free memory as fast as possible
-        var_dict = None
-
-        raw_dict = {}
         for k in results.raw_results.__dict__:
-            input1_data = getattr(results.raw_results, k).input1_data
-            input2_data = getattr(results.raw_results, k).input2_data
-            ts_in_ns = getattr(results.raw_results, k).ts_in_ns
-            data_loss = getattr(results.raw_results, k).data_loss
-            raw_dict[k] = {
-                "input1_data": input1_data,
-                "input2_data": input2_data,
-                "ts_in_ns": ts_in_ns,
-                "data_loss": data_loss
-            }
+            self.write_in_database(
+                'raw_' + k + '_1', getattr(results.raw_results, k).input1_data)
+            self.write_in_database(
+                'raw_' + k + '_2', getattr(results.raw_results, k).input2_data)
 
-        self.write_in_database('raw', raw_dict)
+            # All the values in the data_loss array are identical
+            if getattr(results.raw_results, k).data_loss[0]:
+                log = logging.getLogger()
+                log.warning(
+                    f"[Trace {k}]Data loss detected, you should increase the waiting time")
 
     def _post_setattr_path_to_program_file(self, old, new):
         if new or new != '':
@@ -210,3 +196,71 @@ class ConfigureExecuteTask(InstrumentTask):
                 tmp_comments[key] = ''
 
         return tmp_parameters, tmp_comments
+
+    def _find_variables(self):
+        """Attempts to find the variables saved in a QUA program
+
+        There are 2 types are variables: scalars and raw ADC data.
+        Scalars have to be explicitely saved with a call to the save
+        function whereas raw ADC data can be saved by using a string
+        instead of None as the third argument of the measure function.
+
+        The strategy employed here to find the name of the variables
+        is
+
+        1) Find the get_results() function
+
+        2) Find the name of the variable returned
+
+        3) Find a with statement that defines that variable (with the
+        program() context manager)
+
+        4) Find all instances of save() and measure() inside the with
+        statement.
+
+        In the end, we are (almost) guaranteed to find a superset of
+        all variables that will be returned by the OPX.
+
+        """
+
+        saved_vars = set([])
+        saved_adc_data = set([])
+
+        with open(self.path_to_program_file) as f:
+            root = ast.parse(f.read())
+
+        for i in ast.iter_child_nodes(root):
+            if isinstance(i, ast.FunctionDef) and i.name == 'get_prog':
+                get_results_fun = i
+                break
+
+        for i in ast.iter_child_nodes(get_results_fun):
+            if isinstance(i, ast.Return):
+                prog_name = i.value.id
+                break
+
+        for i in ast.iter_child_nodes(get_results_fun):
+            if isinstance(i, ast.With) and i.items[0].optional_vars and i.items[0].optional_vars.id == prog_name:
+                program_node = i
+                break
+
+        for i in ast.walk(program_node):
+            if isinstance(i, ast.Call):
+                if i.func.id == 'save':
+                    saved_vars.add(i.args[1].s)
+                elif i.func.id == 'measure' and isinstance(i.args[2], ast.Str):
+                    saved_adc_data.add(i.args[2].s)
+
+        # Update the database
+        de = self.database_entries.copy()
+        for k in self.database_entries:
+            if k.startswith('variable') or k.startswith('raw'):
+                del de[k]
+
+        for i in saved_vars:
+            de['variable_' + i] = 0.0
+        for i in saved_adc_data:
+            de['raw_' + i + '_1'] = [0.0]
+            de['raw_' + i + '_2'] = [0.0]
+
+        self.database_entries = de
