@@ -3,13 +3,10 @@ import importlib.util
 import ast
 
 from exopy.tasks.api import InstrumentTask
-from atom.api import Unicode, Long, Float, Value, Typed, set_default
+from atom.api import Unicode, Long, Float, Value, Typed
 import sys
-import os
 import logging
 import time
-
-from exopy_qm.utils.dynamic_importer import *
 
 
 class ConfigureExecuteTask(InstrumentTask):
@@ -55,7 +52,7 @@ class ConfigureExecuteTask(InstrumentTask):
     #: Waiting time before fetching the results from the server
     wait_time = Float(default=1.0).tag(pref=True)
 
-    #: Parameters enterd by the user for the program and config
+    #: Parameters entered by the user for the program and config
     parameters = Typed(dict).tag(pref=True)
 
     #: Comments associated with the parameters
@@ -83,8 +80,9 @@ class ConfigureExecuteTask(InstrumentTask):
             try:
                 self.format_and_eval_string(value)
             except:
-                msg = ("Couldn't evaluate {}")
-                traceback[self.get_error_path() + '-trace'] = msg.format(value)
+                e = sys.exc_info()[0]
+                msg = ("Couldn't evaluate {} : {}")
+                traceback[self.get_error_path() + '-trace'] = msg.format(value, e)
 
         return test, traceback
 
@@ -112,7 +110,7 @@ class ConfigureExecuteTask(InstrumentTask):
             if getattr(results.variable_results, k).possible_data_loss:
                 log = logging.getLogger()
                 log.warning(
-                    f"[Variable {k}] Data loss detected, you should increase the waiting time")
+                    f"[Variable {k}] Possible data loss detected, you should increase the waiting time")
 
         for k in results.raw_results.__dict__:
             self.write_in_database(
@@ -124,7 +122,7 @@ class ConfigureExecuteTask(InstrumentTask):
             if getattr(results.raw_results, k).data_loss[0]:
                 log = logging.getLogger()
                 log.warning(
-                    f"[Trace {k}]Data loss detected, you should increase the waiting time")
+                    f"[Trace {k}] Data loss detected, you should increase the waiting time")
 
     def _post_setattr_path_to_program_file(self, old, new):
         if new or new != '':
@@ -172,9 +170,9 @@ class ConfigureExecuteTask(InstrumentTask):
         self.parameters = params_config
 
     def _parse_parameters(self, params_in):
-        """Parses the parameters dictionnary enterd in the file
+        """Parses the parameters dictionary enterd in the file
 
-        Returns the parameters and comments dictionnaries
+        Returns the parameters and comments dictionaries
 
         """
         tmp_parameters = {}
