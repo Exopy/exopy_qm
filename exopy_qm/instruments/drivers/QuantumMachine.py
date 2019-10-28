@@ -1,6 +1,9 @@
-import sys
 import logging
+import sys
+
 from qm.QuantumMachinesManager import QuantumMachinesManager
+
+logger = logging.getLogger(__name__)
 
 
 def requires_config(func):
@@ -8,8 +11,9 @@ def requires_config(func):
         if self.qmObj:
             func(self, *args, **kwargs)
         else:
-            log = logging.getLogger()
-            log.error("Couldn't run the QUA program because no configuration was set")
+            logger.error(
+                "Couldn't run the QUA program because no configuration was set"
+            )
 
     return wrapper
 
@@ -19,11 +23,15 @@ class QuantumMachine(object):
         self.connection_info = connection_info
 
         port = ""
-        if self.connection_info["gateway_port"] is not None and self.connection_info["gateway_port"] is not "":
+        if self.connection_info[
+                "gateway_port"] is not None and self.connection_info[
+                    "gateway_port"] is not "":
             port = self.connection_info["gateway_port"]
 
         ip = ""
-        if self.connection_info["gateway_ip"] is not None and self.connection_info["gateway_ip"] is not "":
+        if self.connection_info[
+                "gateway_ip"] is not None and self.connection_info[
+                    "gateway_ip"] is not "":
             ip = self.connection_info["gateway_ip"]
 
         if ip is not "" and port is not "":
@@ -60,7 +68,8 @@ class QuantumMachine(object):
 
     @requires_config
     def execute_program(self, prog, duration_limit, data_limit):
-        self.job = self.qmObj.execute(prog, duration_limit=duration_limit,
+        self.job = self.qmObj.execute(prog,
+                                      duration_limit=duration_limit,
                                       data_limit=data_limit,
                                       force_execution=True)
 
@@ -87,8 +96,10 @@ class QuantumMachine(object):
         return self.qmObj.get_io_values()
 
     @requires_config
-    def set_mixer_correction(self, mixer, intermediate_frequency, lo_frequency, values):
-        self.qmObj.set_mixer_correction(mixer, intermediate_frequency, lo_frequency, values)
+    def set_mixer_correction(self, mixer, intermediate_frequency, lo_frequency,
+                             values):
+        self.qmObj.set_mixer_correction(mixer, intermediate_frequency,
+                                        lo_frequency, values)
 
     @requires_config
     def set_intermediate_frequency(self, qe, intermediate_frequency):

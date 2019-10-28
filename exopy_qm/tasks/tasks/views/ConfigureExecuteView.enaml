@@ -45,8 +45,7 @@ enamldef ConfigureExecuteView(InstrView): view:
     PushButton: refresh_config:
         text = 'Refresh'
         clicked ::
-            task._post_setattr_path_to_config_file(config_path_val.text, config_path_val.text)
-
+            task.refresh_config()
 
     Label: program_path_label:
         text = "Path to the program file"
@@ -78,7 +77,7 @@ enamldef ConfigureExecuteView(InstrView): view:
     PushButton: refresh_program:
         text = 'Refresh'
         clicked ::
-            task._post_setattr_path_to_program_file(program_path_val.text, program_path_val.text)
+            task.refresh_program()
 
     Label: wait_label:
         text = "Waiting time (s)"

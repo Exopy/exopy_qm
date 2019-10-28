@@ -1,12 +1,13 @@
+import ast
 import importlib
 import importlib.util
-import ast
-
-from exopy.tasks.api import InstrumentTask
-from atom.api import Unicode, Long, Float, Value, Typed
-import sys
 import logging
 import time
+
+from atom.api import Float, Int, Typed, Unicode, Value
+from exopy.tasks.api import InstrumentTask
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigureExecuteTask(InstrumentTask):
@@ -18,12 +19,12 @@ class ConfigureExecuteTask(InstrumentTask):
     The program and config files are regular python file that should
     contain at least two top-level functions:
 
-    - get_parameters() that should return the parameters dictionnary
+    - get_parameters() that should return the parameters dictionary
     of the file used to parametrize the config/program.
 
     - get_config(parameters)/get_program(parameters) for the
     configuration file and the program file respectively. The
-    parameters argument is a dictionnary containing the values entered
+    parameters argument is a dictionary containing the values entered
     by the users and sould be converted to the appropriate python type
     before using it.
 
@@ -34,20 +35,14 @@ class ConfigureExecuteTask(InstrumentTask):
     #: Path to the python configuration file
     path_to_config_file = Unicode().tag(pref=True)
 
-    #: Module containing the configuration file
-    _config_module = Value()
-
-    #: Module containing the program file
-    _program_module = Value()
-
     #: Path to the python program file
     path_to_program_file = Unicode().tag(pref=True)
 
     #: Maximum duration allowed for the QM
-    duration_limit = Long(default=int(500000)).tag(pref=True)
+    duration_limit = Int(default=int(500000)).tag(pref=True)
 
     #: Maximum amount data allowed for the QM
-    data_limit = Long(default=int(7000000)).tag(pref=True)
+    data_limit = Int(default=int(7000000)).tag(pref=True)
 
     #: Waiting time before fetching the results from the server
     wait_time = Float(default=1.0).tag(pref=True)
@@ -79,10 +74,10 @@ class ConfigureExecuteTask(InstrumentTask):
         for key, value in self.parameters.items():
             try:
                 self.format_and_eval_string(value)
-            except:
-                e = sys.exc_info()[0]
+            except Exception as e:
                 msg = ("Couldn't evaluate {} : {}")
-                traceback[self.get_error_path() + '-trace'] = msg.format(value, e)
+                traceback[self.get_error_path() + '-trace'] = msg.format(
+                    value, e)
 
         return test, traceback
 
@@ -99,30 +94,44 @@ class ConfigureExecuteTask(InstrumentTask):
             evaluated_parameters)
 
         self.driver.set_config(config_to_set)
-        self.driver.execute_program(
-            program_to_execute, self.duration_limit, self.data_limit)
+        self.driver.execute_program(program_to_execute, self.duration_limit,
+                                    self.data_limit)
         time.sleep(self.wait_time)
         results = self.driver.get_results()
 
         for k in results.variable_results.__dict__:
-            self.write_in_database(
-                'variable_' + k, getattr(results.variable_results, k).data)
+            self.write_in_database('variable_' + k,
+                                   getattr(results.variable_results, k).data)
             if getattr(results.variable_results, k).possible_data_loss:
-                log = logging.getLogger()
-                log.warning(
-                    f"[Variable {k}] Possible data loss detected, you should increase the waiting time")
+                logger.warning(f"[Variable {k}] Possible data loss detected, "
+                               f"you should increase the waiting time")
 
         for k in results.raw_results.__dict__:
-            self.write_in_database(
-                'raw_' + k + '_1', getattr(results.raw_results, k).input1_data)
-            self.write_in_database(
-                'raw_' + k + '_2', getattr(results.raw_results, k).input2_data)
+            self.write_in_database('raw_' + k + '_1',
+                                   getattr(results.raw_results, k).input1_data)
+            self.write_in_database('raw_' + k + '_2',
+                                   getattr(results.raw_results, k).input2_data)
 
             # All the values in the data_loss array are identical
             if getattr(results.raw_results, k).data_loss[0]:
-                log = logging.getLogger()
-                log.warning(
-                    f"[Trace {k}] Data loss detected, you should increase the waiting time")
+                logger.warning(f"[Trace {k}] Data loss detected, "
+                               f"you should increase the waiting time")
+
+    def refresh_config(self):
+        self._post_setattr_path_to_config_file(self.path_to_config_file,
+                                               self.path_to_config_file)
+
+    def refresh_program(self):
+        self._post_setattr_path_to_program_file(self.path_to_program_file,
+                                                self.path_to_program_file)
+
+    #--------------------------Private API------------------------------#
+
+    #: Module containing the configuration file
+    _config_module = Value()
+
+    #: Module containing the program file
+    _program_module = Value()
 
     def _post_setattr_path_to_program_file(self, old, new):
         if new or new != '':
@@ -170,7 +179,7 @@ class ConfigureExecuteTask(InstrumentTask):
         self.parameters = params_config
 
     def _parse_parameters(self, params_in):
-        """Parses the parameters dictionary enterd in the file
+        """Parses the parameters dictionary entered in the file
 
         Returns the parameters and comments dictionaries
 
@@ -238,15 +247,17 @@ class ConfigureExecuteTask(InstrumentTask):
                 break
 
         for i in ast.iter_child_nodes(get_results_fun):
-            if isinstance(i, ast.With) and i.items[0].optional_vars and i.items[0].optional_vars.id == prog_name:
+            if (isinstance(i, ast.With) and i.items[0].optional_vars
+                    and i.items[0].optional_vars.id == prog_name):
                 program_node = i
                 break
 
         for i in ast.walk(program_node):
-            if isinstance(i, ast.Call):
+            if isinstance(i, ast.Call) and isinstance(i.func, ast.Name):
                 if i.func.id == 'save':
                     saved_vars.add(i.args[1].s)
-                elif i.func.id == 'measure' and isinstance(i.args[2], ast.Str):
+                elif (i.func.id == 'measure'
+                      and isinstance(i.args[2], ast.Str)):
                     saved_adc_data.add(i.args[2].s)
 
         # Update the database
