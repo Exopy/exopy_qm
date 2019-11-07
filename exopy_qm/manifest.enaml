@@ -49,8 +49,7 @@ enamldef QmManifest(PluginManifest):
                     from .instruments.connections.qm_connection\
                         import QmConnection
                 defaults = dict(lib_dir=defaults.get('gateway_ip', ''),
-                                header_dir=defaults.get('gateway_port',''),
-                                serial_number=defaults.get('config_file_path',''))
+                                header_dir=defaults.get('gateway_port',''))
                 return QmConnection(read_only=read_only, declaration=self,
                                      workbench=workbench, **defaults)
 
@@ -78,6 +77,11 @@ enamldef QmManifest(PluginManifest):
         Tasks:
             path = 'exopy_qm.tasks.tasks'
             group = "instr"
+            Task:
+                task = 'ConfigureExecuteTask:ConfigureExecuteTask'
+                view = 'views.ConfigureExecuteView:ConfigureExecuteView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+
             Task:
                 task = 'ExecuteProgramTask:ExecuteProgramTask'
                 view = 'views.ExecuteProgramView:ExecuteProgramView'
