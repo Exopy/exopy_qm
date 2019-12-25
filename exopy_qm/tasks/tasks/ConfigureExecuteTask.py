@@ -136,10 +136,18 @@ class ConfigureExecuteTask(InstrumentTask):
     def _post_setattr_path_to_program_file(self, old, new):
         if new or new != '':
             importlib.invalidate_caches()
-            spec = importlib.util.spec_from_file_location(
-                "", self.path_to_program_file)
-            self._program_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(self._program_module)
+            try:
+                spec = importlib.util.spec_from_file_location(
+                    "", self.path_to_program_file)
+                self._program_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(self._program_module)
+            except FileNotFoundError:
+                logger.error(f"File {self.path_to_program_file} not found")
+                self._program_module = None
+            except AttributeError:
+                logger.error(
+                    f"File {self.path_to_program_file} is not a python file")
+                self._program_module = None
         else:
             self._program_module = None
 
@@ -149,10 +157,19 @@ class ConfigureExecuteTask(InstrumentTask):
     def _post_setattr_path_to_config_file(self, old, new):
         if new or new != '':
             importlib.invalidate_caches()
-            spec = importlib.util.spec_from_file_location(
-                "", self.path_to_config_file)
-            self._config_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(self._config_module)
+            try:
+                spec = importlib.util.spec_from_file_location(
+                    "", self.path_to_config_file)
+                self._config_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(self._config_module)
+            except FileNotFoundError:
+                logger.error(f"File {self.path_to_config_file} not found")
+                self._config_module = None
+            except AttributeError:
+                logger.error(
+                    f"File {self.path_to_cofnig_file} is not a python file")
+                self._config_module = None
+
         else:
             self._config_module = None
 
@@ -233,32 +250,34 @@ class ConfigureExecuteTask(InstrumentTask):
         saved_vars = set([])
         saved_adc_data = set([])
 
-        with open(self.path_to_program_file) as f:
-            root = ast.parse(f.read())
+        # Make sure the program is somewhat valid before parsing it
+        if self._program_module:
+            with open(self.path_to_program_file) as f:
+                root = ast.parse(f.read())
 
-        for i in ast.iter_child_nodes(root):
-            if isinstance(i, ast.FunctionDef) and i.name == 'get_prog':
-                get_results_fun = i
-                break
+            for i in ast.iter_child_nodes(root):
+                if isinstance(i, ast.FunctionDef) and i.name == 'get_prog':
+                    get_results_fun = i
+                    break
 
-        for i in ast.iter_child_nodes(get_results_fun):
-            if isinstance(i, ast.Return):
-                prog_name = i.value.id
-                break
+            for i in ast.iter_child_nodes(get_results_fun):
+                if isinstance(i, ast.Return):
+                    prog_name = i.value.id
+                    break
 
-        for i in ast.iter_child_nodes(get_results_fun):
-            if (isinstance(i, ast.With) and i.items[0].optional_vars
-                    and i.items[0].optional_vars.id == prog_name):
-                program_node = i
-                break
+            for i in ast.iter_child_nodes(get_results_fun):
+                if (isinstance(i, ast.With) and i.items[0].optional_vars
+                        and i.items[0].optional_vars.id == prog_name):
+                    program_node = i
+                    break
 
-        for i in ast.walk(program_node):
-            if isinstance(i, ast.Call) and isinstance(i.func, ast.Name):
-                if i.func.id == 'save':
-                    saved_vars.add(i.args[1].s)
-                elif (i.func.id == 'measure'
-                      and isinstance(i.args[2], ast.Str)):
-                    saved_adc_data.add(i.args[2].s)
+            for i in ast.walk(program_node):
+                if isinstance(i, ast.Call) and isinstance(i.func, ast.Name):
+                    if i.func.id == 'save':
+                        saved_vars.add(i.args[1].s)
+                    elif (i.func.id == 'measure'
+                          and isinstance(i.args[2], ast.Str)):
+                        saved_adc_data.add(i.args[2].s)
 
         # Update the database
         de = self.database_entries.copy()
