@@ -4,8 +4,9 @@ import importlib.util
 import logging
 import time
 
-from atom.api import Float, Int, Typed, Unicode, Value
+from atom.api import Float, Int, Typed, Unicode, Value, Bool
 from exopy.tasks.api import InstrumentTask
+import qm.qua
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,9 @@ class ConfigureExecuteTask(InstrumentTask):
     #: Comments associated with the parameters
     comments = Typed(dict).tag(pref=True)
 
+    #: Implementent workaround to avoid having to guess the waiting time
+    auto_stop = Bool(default=True).tag(pref=True)
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._config_module = None
@@ -93,10 +97,18 @@ class ConfigureExecuteTask(InstrumentTask):
         program_to_execute = self._program_module.get_prog(
             evaluated_parameters)
 
+        if self.auto_stop:
+            program_to_execute = self._inject_pause(program_to_execute)
+
         self.driver.set_config(config_to_set)
         self.driver.execute_program(program_to_execute, self.duration_limit,
                                     self.data_limit)
-        time.sleep(self.wait_time)
+
+        if self.auto_stop:
+            while not self.driver.is_paused():
+                time.sleep(0.1)
+        else:
+            time.sleep(self.wait_time)
         results = self.driver.get_results()
 
         for k in results.variable_results.__dict__:
@@ -296,3 +308,18 @@ class ConfigureExecuteTask(InstrumentTask):
             de['raw_' + i + '_2'] = [0.0]
 
         self.database_entries = de
+
+    def _inject_pause(self, prog):
+        """Injects a pause() command at the end of the program.
+
+        This allows get_results() to wait for the program completion
+        by repeatedly calling is_paused() on the job. This completely
+        removes the need to estimate the correct waiting time.
+
+        """
+
+        # A bit hacky but is seems to work
+        with qm.qua._dsl._ProgramScope(prog) as new_prog:
+            qm.qua._dsl.pause()
+
+        return new_prog
