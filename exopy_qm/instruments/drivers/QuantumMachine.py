@@ -1,4 +1,5 @@
 import logging
+import tempfile
 
 from qm.QuantumMachinesManager import QuantumMachinesManager
 
@@ -81,8 +82,13 @@ class QuantumMachine(object):
     def set_input_dc_offset_by_qe(self, element, output, offset):
         self.qmObj.set_input_dc_offset_by_element(element, output, offset)
 
-    def get_results(self):
-        return self.job.get_results()
+    def get_results(self, path=None):
+        if not path:
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                return self.job.get_saved_results(
+                    tmpdirname).get_numpy_results()
+        else:
+            return self.job.get_saved_results(path).get_numpy_results()
 
     @requires_config
     def set_io_values(self, io1_value, io2_value):

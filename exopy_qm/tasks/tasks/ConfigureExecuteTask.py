@@ -106,16 +106,20 @@ class ConfigureExecuteTask(InstrumentTask):
                 logger.warning(f"[Variable {k}] Possible data loss detected, "
                                f"you should increase the waiting time")
 
-        for k in results.raw_results.__dict__:
-            self.write_in_database('raw_' + k + '_1',
-                                   getattr(results.raw_results, k).input1_data)
-            self.write_in_database('raw_' + k + '_2',
-                                   getattr(results.raw_results, k).input2_data)
+        # Workaroung for new behavior
+        if "input1_data" not in results.raw_results.__dict__:
+            for k in results.raw_results.__dict__:
+                self.write_in_database(
+                    'raw_' + k + '_1',
+                    getattr(results.raw_results, k).input1_data)
+                self.write_in_database(
+                    'raw_' + k + '_2',
+                    getattr(results.raw_results, k).input2_data)
 
-            # All the values in the data_loss array are identical
-            if getattr(results.raw_results, k).data_loss[0]:
-                logger.warning(f"[Trace {k}] Data loss detected, "
-                               f"you should increase the waiting time")
+                # All the values in the data_loss array are identical
+                if getattr(results.raw_results, k).data_loss[0]:
+                    logger.warning(f"[Trace {k}] Data loss detected, "
+                                   f"you should increase the waiting time")
 
     def refresh_config(self):
         self._post_setattr_path_to_config_file(self.path_to_config_file,
