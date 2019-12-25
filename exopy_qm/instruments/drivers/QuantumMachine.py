@@ -1,5 +1,4 @@
 import logging
-import sys
 
 from qm.QuantumMachinesManager import QuantumMachinesManager
 
@@ -23,18 +22,16 @@ class QuantumMachine(object):
         self.connection_info = connection_info
 
         port = ""
-        if self.connection_info[
-                "gateway_port"] is not None and self.connection_info[
-                    "gateway_port"] is not "":
-            port = self.connection_info["gateway_port"]
+        if connection_info[
+                "gateway_port"] and connection_info["gateway_port"] != "":
+            port = connection_info["gateway_port"]
 
         ip = ""
-        if self.connection_info[
-                "gateway_ip"] is not None and self.connection_info[
-                    "gateway_ip"] is not "":
-            ip = self.connection_info["gateway_ip"]
+        if connection_info[
+                "gateway_ip"] and connection_info["gateway_ip"] != "":
+            ip = connection_info["gateway_ip"]
 
-        if ip is not "" and port is not "":
+        if ip != "" and port != "":
             self.qmm = QuantumMachinesManager(host=ip, port=port)
         else:
             self.qmm = QuantumMachinesManager()
