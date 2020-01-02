@@ -26,7 +26,7 @@ class ConfigureExecuteTask(InstrumentTask):
     - get_config(parameters)/get_program(parameters) for the
     configuration file and the program file respectively. The
     parameters argument is a dictionary containing the values entered
-    by the users and sould be converted to the appropriate python type
+    by the users and should be converted to the appropriate python type
     before using it.
 
     The two files can be merged into one if wanted.
