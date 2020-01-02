@@ -62,7 +62,7 @@ class QuantumMachine(object):
             self.qmObj.close()
 
     def set_config(self, config):
-        self.qmObj = self.qmm.open_qm(config)
+        self.qmObj = self.qmm.open_qm(config, close_other_machines=True)
 
     @requires_config
     def execute_program(self, prog, duration_limit, data_limit):
@@ -88,10 +88,10 @@ class QuantumMachine(object):
     def get_results(self, path=None):
         if not path:
             with tempfile.TemporaryDirectory() as tmpdirname:
-                return self.job.get_saved_results(
-                    tmpdirname).get_numpy_results()
+                return self.job.get_results(path=tmpdirname,
+                                            ignore_data_loss=True)
         else:
-            return self.job.get_saved_results(path).get_numpy_results()
+            return self.job.get_results(path=path, ignore_data_loss=True)
 
     @requires_config
     def set_io_values(self, io1_value, io2_value):

@@ -4,7 +4,7 @@ import importlib.util
 import logging
 import time
 
-from atom.api import Float, Int, Typed, Unicode, Value, Bool
+from atom.api import Float, Int, List, Typed, Unicode, Value, Bool
 from exopy.tasks.api import InstrumentTask
 import qm.qua
 
@@ -113,25 +113,22 @@ class ConfigureExecuteTask(InstrumentTask):
 
         for k in results.variable_results.__dict__:
             self.write_in_database('variable_' + k,
-                                   getattr(results.variable_results, k).data)
+                                   getattr(results.variable_results, k).values)
             if getattr(results.variable_results, k).possible_data_loss:
                 logger.warning(f"[Variable {k}] Possible data loss detected, "
                                f"you should increase the waiting time")
 
-        # Workaroung for new behavior
-        if "input1_data" not in results.raw_results.__dict__:
-            for k in results.raw_results.__dict__:
-                self.write_in_database(
-                    'raw_' + k + '_1',
-                    getattr(results.raw_results, k).input1_data)
-                self.write_in_database(
-                    'raw_' + k + '_2',
-                    getattr(results.raw_results, k).input2_data)
+        # Take the tag names from the program file parsing
+        for tag in self._raw_tags:
+            data_tag = results.raw_results.get_tagged_streams(tag)
 
-                # All the values in the data_loss array are identical
-                if getattr(results.raw_results, k).data_loss[0]:
-                    logger.warning(f"[Trace {k}] Data loss detected, "
-                                   f"you should increase the waiting time")
+            merged_data = np.concatenate(data_tag, axis=0)
+            self.write_in_database('raw_' + tag + '_1', merged_data.input1)
+            self.write_in_database('raw_' + tag + '_2', merged_data.input2)
+
+            if data_tag.data_loss:
+                logger.warning(f"[Trace {k}] Data loss detected, "
+                               f"you should increase the waiting time")
 
     def refresh_config(self):
         self._post_setattr_path_to_config_file(self.path_to_config_file,
@@ -148,6 +145,9 @@ class ConfigureExecuteTask(InstrumentTask):
 
     #: Module containing the program file
     _program_module = Value()
+
+    #: List of all the tags used in the raw data
+    _raw_tags = List()
 
     def _post_setattr_path_to_program_file(self, old, new):
         if new or new != '':
@@ -300,6 +300,8 @@ class ConfigureExecuteTask(InstrumentTask):
         for k in self.database_entries:
             if k.startswith('variable') or k.startswith('raw'):
                 del de[k]
+
+        self._raw_tags = list(saved_adc_data)
 
         for i in saved_vars:
             de['variable_' + i] = 0.0
