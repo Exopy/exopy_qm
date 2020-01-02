@@ -45,7 +45,9 @@ class ConfigureExecuteTask(InstrumentTask):
     #: Maximum amount data allowed for the QM
     data_limit = Int(default=int(7000000)).tag(pref=True)
 
-    #: Waiting time before fetching the results from the server
+    #: Waiting time before fetching the results from the server.
+    #: If auto-stop is activated, we wait for this amount of time before
+    #: fetching the results
     wait_time = Float(default=1.0).tag(pref=True)
 
     #: Parameters entered by the user for the program and config
@@ -54,7 +56,7 @@ class ConfigureExecuteTask(InstrumentTask):
     #: Comments associated with the parameters
     comments = Typed(dict).tag(pref=True)
 
-    #: Implementent workaround to avoid having to guess the waiting time
+    #: Implement a workaround to avoid having to guess the waiting time
     auto_stop = Bool(default=True).tag(pref=True)
 
     def __init__(self, **kwargs):
@@ -107,6 +109,8 @@ class ConfigureExecuteTask(InstrumentTask):
         if self.auto_stop:
             while not self.driver.is_paused():
                 time.sleep(0.1)
+            time.sleep(self.wait_time)
+
         else:
             time.sleep(self.wait_time)
         results = self.driver.get_results()
@@ -114,9 +118,6 @@ class ConfigureExecuteTask(InstrumentTask):
         for k in results.variable_results.__dict__:
             self.write_in_database('variable_' + k,
                                    getattr(results.variable_results, k).values)
-            if getattr(results.variable_results, k).possible_data_loss:
-                logger.warning(f"[Variable {k}] Possible data loss detected, "
-                               f"you should increase the waiting time")
 
         # Take the tag names from the program file parsing
         for tag in self._raw_tags:

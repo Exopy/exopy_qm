@@ -85,6 +85,7 @@ class QuantumMachine(object):
     def set_input_dc_offset_by_qe(self, element, output, offset):
         self.qmObj.set_input_dc_offset_by_element(element, output, offset)
 
+    # TODO: Add data loss handling
     def get_results(self, path=None):
         if not path:
             with tempfile.TemporaryDirectory() as tmpdirname:
