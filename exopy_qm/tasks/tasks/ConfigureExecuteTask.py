@@ -2,6 +2,8 @@ import ast
 import importlib
 import importlib.util
 import logging
+from pathlib import Path
+import shutil
 import time
 
 from atom.api import Float, Int, List, Typed, Unicode, Value, Bool
@@ -45,6 +47,12 @@ class ConfigureExecuteTask(InstrumentTask):
 
     #: Path to the python program file
     path_to_program_file = Unicode().tag(pref=True)
+
+    #: Path to the folder where the config and program files are saved
+    path_to_save = Unicode(default="{default_path}/configs_and_progs").tag(pref=True)
+
+    #: Prefix used when saving the configuration and program files
+    save_prefix = Unicode(default="{meas_id}").tag(pref=True)
 
     #: Maximum duration allowed for the QM
     duration_limit = Int(default=int(500000)).tag(pref=True)
@@ -97,6 +105,35 @@ class ConfigureExecuteTask(InstrumentTask):
         config_to_set = self._config_module.get_config(evaluated_parameters)
         program_to_execute = self._program_module.get_prog(
             evaluated_parameters)
+
+        try:
+            if self.path_to_save != "":
+                path_str = self.format_string(self.path_to_save)
+                root_path = Path(path_str)
+                if not root_path.is_dir():
+                    if root_path.exists():
+                        logger.warning(
+                            f"Couldn't save the config and program"
+                            f"to {root_path} because {root_path} is "
+                            f"not a directory")
+                        raise NotADirectoryError
+                    else:
+                        root_path.mkdir(parents=True)
+
+                save_prefix = self.format_string(self.save_prefix)
+
+                config_path = root_path / f"{save_prefix}_config.py"
+                program_path = root_path / f"{save_prefix}_program.py"
+
+                shutil.copyfile(self.path_to_config_file, config_path)
+                shutil.copyfile(self.path_to_program_file,
+                                program_path)
+
+        except NotADirectoryError:
+            pass
+
+        if self.auto_stop:
+            program_to_execute = self._inject_pause(program_to_execute)
 
         self.driver.set_config(config_to_set)
         self.driver.execute_program(program_to_execute, self.duration_limit,
