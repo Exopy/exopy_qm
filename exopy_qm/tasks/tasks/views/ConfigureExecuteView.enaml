@@ -1,3 +1,4 @@
+import os, sys, subprocess
 from textwrap import fill
 
 from enaml.core.api import Looper
@@ -13,6 +14,13 @@ from exopy.utils.widgets.qt_completers import QtLineCompleter
 
 from .base_instr_view import InstrView
 
+def open_file_gui(filename):
+    if sys.platform == "win32":
+        os.startfile(filename)
+    else:
+        opener ="open" if sys.platform == "darwin" else "xdg-open"
+        subprocess.call([opener, filename])
+
 
 enamldef ConfigureExecuteView(InstrView): view:
     """View for the ConfigureExecuteTask.
@@ -21,9 +29,9 @@ enamldef ConfigureExecuteView(InstrView): view:
     constraints = [vbox(hbox(instr_label, instr_selection,
                              duration_label, duration_field,
                              data_label, data_field),
-                        hbox(config_path_label, config_path_val,
+                        hbox(config_path_label, config_path_val, config_open_button,
                              config_path_exp, refresh_config),
-                        hbox(program_path_label, program_path_val,
+                        hbox(program_path_label, program_path_val, program_open_button,
                              program_path_exp, refresh_program),
                         param_list),
                    align('left', config_path_val, program_path_val),
@@ -38,6 +46,11 @@ enamldef ConfigureExecuteView(InstrView): view:
     Field: config_path_val:
         text := task.path_to_config_file
         tool_tip = fill("Path to the configuration file")
+    ToolButton: config_open_button:
+         hug_width = 'strong'
+         icon = get_icon(workbench, 'edit')
+         clicked ::
+             open_file_gui(config_path_val.text)
     ToolButton: config_path_exp:
         hug_width = 'strong'
         icon = get_icon(workbench, 'folder-open')
@@ -57,7 +70,11 @@ enamldef ConfigureExecuteView(InstrView): view:
     Field: program_path_val:
         text := task.path_to_program_file
         tool_tip = fill("Path to QUA program file")
-
+    ToolButton: program_open_button:
+        hug_width = 'strong'
+        icon = get_icon(workbench, 'edit')
+        clicked ::
+            open_file_gui(program_path_val.text)
     ToolButton: program_path_exp:
         hug_width = 'strong'
         icon = get_icon(workbench, 'folder-open')
