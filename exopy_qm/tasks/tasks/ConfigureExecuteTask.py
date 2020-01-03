@@ -286,6 +286,7 @@ class ConfigureExecuteTask(InstrumentTask):
 
         saved_vars = set([])
         saved_adc_data = set([])
+        get_results_fun, prog_name, program_node = None, None, None
 
         # Make sure the program is somewhat valid before parsing it
         try:
