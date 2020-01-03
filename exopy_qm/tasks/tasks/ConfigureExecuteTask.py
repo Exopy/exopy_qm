@@ -11,6 +11,13 @@ import qm.qua
 logger = logging.getLogger(__name__)
 
 
+class ParseError(Exception):
+    """ Error used to indicate a failure in the program parsing
+
+    """
+    pass
+
+
 class ConfigureExecuteTask(InstrumentTask):
     """Configures the QM, executes the QUA program and fetches the results
 
@@ -139,44 +146,51 @@ class ConfigureExecuteTask(InstrumentTask):
     _raw_tags = List()
 
     def _post_setattr_path_to_program_file(self, old, new):
+        self._program_module = None
+
         if new or new != '':
             importlib.invalidate_caches()
             try:
                 spec = importlib.util.spec_from_file_location(
                     "", self.path_to_program_file)
-                self._program_module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(self._program_module)
+                program_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(program_module)
             except FileNotFoundError:
                 logger.error(f"File {self.path_to_program_file} not found")
-                self._program_module = None
             except AttributeError:
-                logger.error(
-                    f"File {self.path_to_program_file} is not a python file")
-                self._program_module = None
-        else:
-            self._program_module = None
+                logger.error(f"File {self.path_to_program_file} is not a "
+                             f"python file")
+            except Exception as e:
+                logger.error(f"An exception occured when trying to import "
+                             f"{self.path_to_program_file}")
+                logger.error(e)
+            else:
+                self._program_module = program_module
 
         self._update_parameters()
         self._find_variables()
 
     def _post_setattr_path_to_config_file(self, old, new):
+        self._config_module = None
+
         if new or new != '':
             importlib.invalidate_caches()
             try:
                 spec = importlib.util.spec_from_file_location(
                     "", self.path_to_config_file)
-                self._config_module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(self._config_module)
+                config_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(config_module)
             except FileNotFoundError:
                 logger.error(f"File {self.path_to_config_file} not found")
-                self._config_module = None
             except AttributeError:
                 logger.error(
-                    f"File {self.path_to_cofnig_file} is not a python file")
-                self._config_module = None
-
-        else:
-            self._config_module = None
+                    f"File {self.path_to_config_file} is not a python file")
+            except Exception as e:
+                logger.error(f"An exception occured when trying to import "
+                             f"{self.path_to_config_file}")
+                logger.error(e)
+            else:
+                self._config_module = config_module
 
         self._update_parameters()
 
@@ -188,11 +202,29 @@ class ConfigureExecuteTask(InstrumentTask):
         comments_config, comments_program = {}, {}
 
         if self._config_module:
-            params_config, comments_config = self._parse_parameters(
-                self._config_module.get_parameters())
+            try:
+                params_config, comments_config = self._parse_parameters(
+                    self._config_module.get_parameters())
+            except AttributeError:
+                logger.error(f"{self.path_to_config_file} needs to "
+                             f"have a get_parameters function "
+                             f"with no arguments.")
+            except Exception as e:
+                logger.error(f"An exception occured when trying to get the "
+                             f"parameters from {self.path_to_config_file}")
+                logger.error(e)
+
         if self._program_module:
-            params_program, comments_program = self._parse_parameters(
-                self._program_module.get_parameters())
+            try:
+                params_program, comments_program = self._parse_parameters(
+                    self._program_module.get_parameters())
+            except AttributeError:
+                logger.error(f"{self.path_to_program_file} needs "
+                             f"to have a get_parameters function")
+            except Exception as e:
+                logger.error(f"An exception occured when trying to get the "
+                             f"parameters from {self.path_to_program_file}")
+                logger.error(e)
 
         comments_config.update(comments_program)
         self.comments = comments_config
@@ -256,33 +288,60 @@ class ConfigureExecuteTask(InstrumentTask):
         saved_adc_data = set([])
 
         # Make sure the program is somewhat valid before parsing it
-        if self._program_module:
-            with open(self.path_to_program_file) as f:
-                root = ast.parse(f.read())
+        try:
+            if self._program_module:
+                with open(self.path_to_program_file) as f:
+                    try:
+                        root = ast.parse(f.read())
+                    except Exception as e:
+                        logger.error(f"An error occured when parsing "
+                                     f"{self.path_to_program_file}")
+                        logger.error(e)
+                        raise ParseError
 
-            for i in ast.iter_child_nodes(root):
-                if isinstance(i, ast.FunctionDef) and i.name == 'get_prog':
-                    get_results_fun = i
-                    break
+                for i in ast.iter_child_nodes(root):
+                    if isinstance(i, ast.FunctionDef) and i.name == 'get_prog':
+                        get_results_fun = i
+                        break
 
-            for i in ast.iter_child_nodes(get_results_fun):
-                if isinstance(i, ast.Return):
-                    prog_name = i.value.id
-                    break
+                if not get_results_fun:
+                    logger.error("Unable to find the get_prog function "
+                                 "in the program file")
+                    raise ParseError
 
-            for i in ast.iter_child_nodes(get_results_fun):
-                if (isinstance(i, ast.With) and i.items[0].optional_vars
-                        and i.items[0].optional_vars.id == prog_name):
-                    program_node = i
-                    break
+                for i in ast.iter_child_nodes(get_results_fun):
+                    if isinstance(i, ast.Return):
+                        prog_name = i.value.id
+                        break
 
-            for i in ast.walk(program_node):
-                if isinstance(i, ast.Call) and isinstance(i.func, ast.Name):
-                    if i.func.id == 'save':
-                        saved_vars.add(i.args[1].s)
-                    elif (i.func.id == 'measure'
-                          and isinstance(i.args[2], ast.Str)):
-                        saved_adc_data.add(i.args[2].s)
+                if not prog_name:
+                    logger.error("Unable to find the name of the QUA program "
+                                 "in the get_prog function")
+                    raise ParseError
+
+                for i in ast.iter_child_nodes(get_results_fun):
+                    if (isinstance(i, ast.With) and i.items[0].optional_vars
+                            and i.items[0].optional_vars.id == prog_name):
+                        program_node = i
+                        break
+
+                if not program_node:
+                    logger.error("Unable to find the QUA program definition "
+                                 "in the get_prog function")
+                    raise ParseError
+
+                for i in ast.walk(program_node):
+                    if isinstance(i, ast.Call) and isinstance(
+                            i.func, ast.Name):
+                        if i.func.id == 'save':
+                            saved_vars.add(i.args[1].s)
+                        elif (i.func.id == 'measure'
+                              and isinstance(i.args[2], ast.Str)):
+                            saved_adc_data.add(i.args[2].s)
+
+        except ParseError:
+            logger.error("Unable to parse the program file to find "
+                         "the variable names")
 
         # Update the database
         de = self.database_entries.copy()
