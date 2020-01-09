@@ -102,17 +102,22 @@ class ConfigureExecuteTask(InstrumentTask):
             self.write_in_database('variable_' + k,
                                    getattr(results.variable_results, k).values)
 
-        # Take the tag names from the program file parsing
+        # This is currently broken and for now, all the raw variables
+        # contain all the raw data
         for tag in self._raw_tags:
-            data_tag = results.raw_results.get_tagged_streams(tag)
+            # data_tag = results.raw_results.get_tagged_streams(tag)
 
-            merged_data = np.concatenate(data_tag, axis=0)
-            self.write_in_database('raw_' + tag + '_1', merged_data.input1)
-            self.write_in_database('raw_' + tag + '_2', merged_data.input2)
+            # merged_data = np.concatenate(data_tag, axis=0)
+            # self.write_in_database('raw_' + tag + '_1', merged_data.input1)
+            # self.write_in_database('raw_' + tag + '_2', merged_data.input2)
+            self.write_in_database('raw_' + tag + '_1',
+                                   self.raw_results.input1.values)
+            self.write_in_database('raw_' + tag + '_2',
+                                   self.raw_data.input2.values)
 
-            if data_tag.data_loss:
-                logger.warning(f"[Trace {k}] Data loss detected, "
-                               f"you should increase the waiting time")
+            # if data_tag.data_loss:
+                # logger.warning(f"[Trace {k}] Data loss detected, "
+                #                f"you should increase the waiting time")
 
     def refresh_config(self):
         self._post_setattr_path_to_config_file(self.path_to_config_file,
