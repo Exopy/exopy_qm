@@ -4,8 +4,9 @@ import importlib.util
 import logging
 import time
 
-from atom.api import Float, Int, Typed, Unicode, Value
+from atom.api import Float, Int, List, Typed, Unicode, Value, Bool
 from exopy.tasks.api import InstrumentTask
+import qm.qua
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ class ConfigureExecuteTask(InstrumentTask):
     - get_config(parameters)/get_program(parameters) for the
     configuration file and the program file respectively. The
     parameters argument is a dictionary containing the values entered
-    by the users and sould be converted to the appropriate python type
+    by the users and should be converted to the appropriate python type
     before using it.
 
     The two files can be merged into one if wanted.
@@ -43,9 +44,6 @@ class ConfigureExecuteTask(InstrumentTask):
 
     #: Maximum amount data allowed for the QM
     data_limit = Int(default=int(7000000)).tag(pref=True)
-
-    #: Waiting time before fetching the results from the server
-    wait_time = Float(default=1.0).tag(pref=True)
 
     #: Parameters entered by the user for the program and config
     parameters = Typed(dict).tag(pref=True)
@@ -96,26 +94,30 @@ class ConfigureExecuteTask(InstrumentTask):
         self.driver.set_config(config_to_set)
         self.driver.execute_program(program_to_execute, self.duration_limit,
                                     self.data_limit)
-        time.sleep(self.wait_time)
+
+        self.driver.wait_for_all_results(self.duration_limit)
         results = self.driver.get_results()
 
         for k in results.variable_results.__dict__:
             self.write_in_database('variable_' + k,
-                                   getattr(results.variable_results, k).data)
-            if getattr(results.variable_results, k).possible_data_loss:
-                logger.warning(f"[Variable {k}] Possible data loss detected, "
-                               f"you should increase the waiting time")
+                                   getattr(results.variable_results, k).values)
 
-        for k in results.raw_results.__dict__:
-            self.write_in_database('raw_' + k + '_1',
-                                   getattr(results.raw_results, k).input1_data)
-            self.write_in_database('raw_' + k + '_2',
-                                   getattr(results.raw_results, k).input2_data)
+        # This is currently broken and for now, all the raw variables
+        # contain all the raw data
+        for tag in self._raw_tags:
+            # data_tag = results.raw_results.get_tagged_streams(tag)
 
-            # All the values in the data_loss array are identical
-            if getattr(results.raw_results, k).data_loss[0]:
-                logger.warning(f"[Trace {k}] Data loss detected, "
-                               f"you should increase the waiting time")
+            # merged_data = np.concatenate(data_tag, axis=0)
+            # self.write_in_database('raw_' + tag + '_1', merged_data.input1)
+            # self.write_in_database('raw_' + tag + '_2', merged_data.input2)
+            self.write_in_database('raw_' + tag + '_1',
+                                   self.raw_results.input1.values)
+            self.write_in_database('raw_' + tag + '_2',
+                                   self.raw_data.input2.values)
+
+            # if data_tag.data_loss:
+                # logger.warning(f"[Trace {k}] Data loss detected, "
+                #                f"you should increase the waiting time")
 
     def refresh_config(self):
         self._post_setattr_path_to_config_file(self.path_to_config_file,
@@ -133,13 +135,24 @@ class ConfigureExecuteTask(InstrumentTask):
     #: Module containing the program file
     _program_module = Value()
 
+    #: List of all the tags used in the raw data
+    _raw_tags = List()
+
     def _post_setattr_path_to_program_file(self, old, new):
         if new or new != '':
             importlib.invalidate_caches()
-            spec = importlib.util.spec_from_file_location(
-                "", self.path_to_program_file)
-            self._program_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(self._program_module)
+            try:
+                spec = importlib.util.spec_from_file_location(
+                    "", self.path_to_program_file)
+                self._program_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(self._program_module)
+            except FileNotFoundError:
+                logger.error(f"File {self.path_to_program_file} not found")
+                self._program_module = None
+            except AttributeError:
+                logger.error(
+                    f"File {self.path_to_program_file} is not a python file")
+                self._program_module = None
         else:
             self._program_module = None
 
@@ -149,10 +162,19 @@ class ConfigureExecuteTask(InstrumentTask):
     def _post_setattr_path_to_config_file(self, old, new):
         if new or new != '':
             importlib.invalidate_caches()
-            spec = importlib.util.spec_from_file_location(
-                "", self.path_to_config_file)
-            self._config_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(self._config_module)
+            try:
+                spec = importlib.util.spec_from_file_location(
+                    "", self.path_to_config_file)
+                self._config_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(self._config_module)
+            except FileNotFoundError:
+                logger.error(f"File {self.path_to_config_file} not found")
+                self._config_module = None
+            except AttributeError:
+                logger.error(
+                    f"File {self.path_to_cofnig_file} is not a python file")
+                self._config_module = None
+
         else:
             self._config_module = None
 
@@ -233,38 +255,42 @@ class ConfigureExecuteTask(InstrumentTask):
         saved_vars = set([])
         saved_adc_data = set([])
 
-        with open(self.path_to_program_file) as f:
-            root = ast.parse(f.read())
+        # Make sure the program is somewhat valid before parsing it
+        if self._program_module:
+            with open(self.path_to_program_file) as f:
+                root = ast.parse(f.read())
 
-        for i in ast.iter_child_nodes(root):
-            if isinstance(i, ast.FunctionDef) and i.name == 'get_prog':
-                get_results_fun = i
-                break
+            for i in ast.iter_child_nodes(root):
+                if isinstance(i, ast.FunctionDef) and i.name == 'get_prog':
+                    get_results_fun = i
+                    break
 
-        for i in ast.iter_child_nodes(get_results_fun):
-            if isinstance(i, ast.Return):
-                prog_name = i.value.id
-                break
+            for i in ast.iter_child_nodes(get_results_fun):
+                if isinstance(i, ast.Return):
+                    prog_name = i.value.id
+                    break
 
-        for i in ast.iter_child_nodes(get_results_fun):
-            if (isinstance(i, ast.With) and i.items[0].optional_vars
-                    and i.items[0].optional_vars.id == prog_name):
-                program_node = i
-                break
+            for i in ast.iter_child_nodes(get_results_fun):
+                if (isinstance(i, ast.With) and i.items[0].optional_vars
+                        and i.items[0].optional_vars.id == prog_name):
+                    program_node = i
+                    break
 
-        for i in ast.walk(program_node):
-            if isinstance(i, ast.Call) and isinstance(i.func, ast.Name):
-                if i.func.id == 'save':
-                    saved_vars.add(i.args[1].s)
-                elif (i.func.id == 'measure'
-                      and isinstance(i.args[2], ast.Str)):
-                    saved_adc_data.add(i.args[2].s)
+            for i in ast.walk(program_node):
+                if isinstance(i, ast.Call) and isinstance(i.func, ast.Name):
+                    if i.func.id == 'save':
+                        saved_vars.add(i.args[1].s)
+                    elif (i.func.id == 'measure'
+                          and isinstance(i.args[2], ast.Str)):
+                        saved_adc_data.add(i.args[2].s)
 
         # Update the database
         de = self.database_entries.copy()
         for k in self.database_entries:
             if k.startswith('variable') or k.startswith('raw'):
                 del de[k]
+
+        self._raw_tags = list(saved_adc_data)
 
         for i in saved_vars:
             de['variable_' + i] = 0.0
