@@ -45,19 +45,11 @@ class ConfigureExecuteTask(InstrumentTask):
     #: Maximum amount data allowed for the QM
     data_limit = Int(default=int(7000000)).tag(pref=True)
 
-    #: Waiting time before fetching the results from the server.
-    #: If auto-stop is activated, we wait for this amount of time before
-    #: fetching the results
-    wait_time = Float(default=1.0).tag(pref=True)
-
     #: Parameters entered by the user for the program and config
     parameters = Typed(dict).tag(pref=True)
 
     #: Comments associated with the parameters
     comments = Typed(dict).tag(pref=True)
-
-    #: Implement a workaround to avoid having to guess the waiting time
-    auto_stop = Bool(default=True).tag(pref=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -99,20 +91,11 @@ class ConfigureExecuteTask(InstrumentTask):
         program_to_execute = self._program_module.get_prog(
             evaluated_parameters)
 
-        if self.auto_stop:
-            program_to_execute = self._inject_pause(program_to_execute)
-
         self.driver.set_config(config_to_set)
         self.driver.execute_program(program_to_execute, self.duration_limit,
                                     self.data_limit)
 
-        if self.auto_stop:
-            while not self.driver.is_paused():
-                time.sleep(0.1)
-            time.sleep(self.wait_time)
-
-        else:
-            time.sleep(self.wait_time)
+        self.driver.wait_for_all_results(self.duration_limit)
         results = self.driver.get_results()
 
         for k in results.variable_results.__dict__:
@@ -311,18 +294,3 @@ class ConfigureExecuteTask(InstrumentTask):
             de['raw_' + i + '_2'] = [0.0]
 
         self.database_entries = de
-
-    def _inject_pause(self, prog):
-        """Injects a pause() command at the end of the program.
-
-        This allows get_results() to wait for the program completion
-        by repeatedly calling is_paused() on the job. This completely
-        removes the need to estimate the correct waiting time.
-
-        """
-
-        # A bit hacky but is seems to work
-        with qm.qua._dsl._ProgramScope(prog) as new_prog:
-            qm.qua._dsl.pause()
-
-        return new_prog

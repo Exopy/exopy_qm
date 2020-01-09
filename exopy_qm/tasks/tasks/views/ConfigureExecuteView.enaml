@@ -18,8 +18,7 @@ enamldef ConfigureExecuteView(InstrView): view:
     """View for the ConfigureExecuteTask.
 
     """
-    constraints = [vbox(hbox(instr_label, instr_selection, wait_label,
-                             wait_field, auto_stop_label, auto_stop_checkbox,
+    constraints = [vbox(hbox(instr_label, instr_selection,
                              duration_label, duration_field,
                              data_label, data_field),
                         hbox(config_path_label, config_path_val,
@@ -29,8 +28,7 @@ enamldef ConfigureExecuteView(InstrView): view:
                         param_list),
                    align('left', config_path_val, program_path_val),
                    align('left', refresh_config, refresh_program),
-                   align('v_center', instr_label, instr_selection, wait_label,
-                         wait_field, auto_stop_label, auto_stop_checkbox,
+                   align('v_center', instr_label, instr_selection,
                          duration_label, duration_field,
                          data_label, data_field)]
 
@@ -85,24 +83,6 @@ enamldef ConfigureExecuteView(InstrView): view:
         text = 'Refresh'
         clicked ::
             task.refresh_program()
-
-    Label: wait_label:
-        text = "Waiting time (s)"
-    FloatField: wait_field:
-        value := task.wait_time
-        tool_tip = fill("Due to a current QM limitation, you have to enter a "
-                        "lower bound for the experiment time. Exopy will wait "
-                        "for that amount of time before fetching the results "
-                        "from the server.")
-
-    Label: auto_stop_label:
-        text = "Auto-stop"
-    CheckBox: auto_stop_checkbox:
-        tool_tip = fill("This injects a pause() at the end of the program and "
-                        "waits for the program to be paused before fetching "
-                        "the results from the server. The waiting time is "
-                        "ignored when this is enabled.")
-        checked := task.auto_stop
 
     Container: param_list:
         Looper:

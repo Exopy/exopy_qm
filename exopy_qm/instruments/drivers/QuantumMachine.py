@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 def requires_config(func):
     def wrapper(self, *args, **kwargs):
         if self.qmObj:
-            func(self, *args, **kwargs)
+            return func(self, *args, **kwargs)
         else:
             logger.error(
                 "Couldn't run the QUA program because no configuration was set"
@@ -85,7 +85,12 @@ class QuantumMachine(object):
     def set_input_dc_offset_by_qe(self, element, output, offset):
         self.qmObj.set_input_dc_offset_by_element(element, output, offset)
 
+    @requires_config
+    def wait_for_all_results(self, timeout):
+        self.job.wait_for_all_results(timeout)
+
     # TODO: Add data loss handling
+    @requires_config
     def get_results(self, path=None):
         if not path:
             with tempfile.TemporaryDirectory() as tmpdirname:
