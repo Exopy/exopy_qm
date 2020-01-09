@@ -33,12 +33,21 @@ enamldef ConfigureExecuteView(InstrView): view:
                              config_path_exp, refresh_config),
                         hbox(program_path_label, program_path_val, program_open_button,
                              program_path_exp, refresh_program),
+                        hbox(save_path_label, save_path_val,
+                             save_prefix_label, save_prefix_val),
                         param_list),
                    align('left', config_path_val, program_path_val),
                    align('left', refresh_config, refresh_program),
                    align('v_center', instr_label, instr_selection,
                          duration_label, duration_field,
-                         data_label, data_field)]
+                         data_label, data_field),
+                   align('v_center', save_path_label, save_path_val,
+                         save_prefix_label, save_prefix_val),
+                   align('v_center', program_path_label, program_path_val,
+                         program_open_button, program_path_exp, refresh_program),
+                   align('v_center', config_path_label, config_path_val,
+                         config_open_button, config_path_exp, refresh_config),
+                   save_path_val.width == save_prefix_val.width]
 
 
     Label: config_path_label:
@@ -83,6 +92,22 @@ enamldef ConfigureExecuteView(InstrView): view:
             path = FileDialogEx.get_open_file_name(name_filters=filter)
             if path:
                 program_path_val.text = path
+
+    Label: save_path_label:
+        text = "Save directory "
+    QtLineCompleter: save_path_val:
+        text := task.path_to_save
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = fill("Path to the a folder where the configuration "
+                        "and program files will be saved. If you don't "
+                        "want to save the files, leave this field empy")
+    Label: save_prefix_label:
+        text = "Prefix"
+    QtLineCompleter: save_prefix_val:
+        text := task.save_prefix
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = fill("Prefix used in front of the config and program files "
+                        "when saving them.")
 
     Label: duration_label:
         text = "Duration limit"
