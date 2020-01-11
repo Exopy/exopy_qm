@@ -132,9 +132,6 @@ class ConfigureExecuteTask(InstrumentTask):
         except NotADirectoryError:
             pass
 
-        if self.auto_stop:
-            program_to_execute = self._inject_pause(program_to_execute)
-
         self.driver.set_config(config_to_set)
         self.driver.execute_program(program_to_execute, self.duration_limit,
                                     self.data_limit)
@@ -155,9 +152,9 @@ class ConfigureExecuteTask(InstrumentTask):
             # self.write_in_database('raw_' + tag + '_1', merged_data.input1)
             # self.write_in_database('raw_' + tag + '_2', merged_data.input2)
             self.write_in_database('raw_' + tag + '_1',
-                                   self.raw_results.input1.values)
+                                   results.raw_results.input1.values)
             self.write_in_database('raw_' + tag + '_2',
-                                   self.raw_data.input2.values)
+                                   results.raw_results.input2.values)
 
             # if data_tag.data_loss:
                 # logger.warning(f"[Trace {k}] Data loss detected, "
