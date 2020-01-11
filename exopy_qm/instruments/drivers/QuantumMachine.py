@@ -65,7 +65,14 @@ class QuantumMachine(object):
         self.qmObj = self.qmm.open_qm(config, close_other_machines=True)
 
     @requires_config
-    def execute_program(self, prog, duration_limit, data_limit):
+    def execute_program(self, prog, duration_limit=0, data_limit=0):
+        """Create a job on the OPX to execute a program.
+
+        The duration_limit and data_limit arguments specify the
+        maximum time and data size that the job can use before getting
+        stopped by the server. Those limits are disabled by default.
+
+        """
         self.job = self.qmObj.execute(prog,
                                       duration_limit=duration_limit,
                                       data_limit=data_limit,
@@ -86,7 +93,12 @@ class QuantumMachine(object):
         self.qmObj.set_input_dc_offset_by_element(element, output, offset)
 
     @requires_config
-    def wait_for_all_results(self, timeout):
+    def wait_for_all_results(self, timeout=3600):
+        """Wait for the current job to be completed.
+
+        The default timeout is 1 hour.
+
+        """
         self.job.wait_for_all_results(timeout)
 
     # TODO: Add data loss handling

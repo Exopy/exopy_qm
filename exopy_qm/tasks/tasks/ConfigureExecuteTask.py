@@ -54,12 +54,6 @@ class ConfigureExecuteTask(InstrumentTask):
     #: Prefix used when saving the configuration and program files
     save_prefix = Unicode(default="{meas_id}").tag(pref=True)
 
-    #: Maximum duration allowed for the QM
-    duration_limit = Int(default=int(500000)).tag(pref=True)
-
-    #: Maximum amount data allowed for the QM
-    data_limit = Int(default=int(7000000)).tag(pref=True)
-
     #: Parameters entered by the user for the program and config
     parameters = Typed(dict).tag(pref=True)
 
@@ -133,10 +127,9 @@ class ConfigureExecuteTask(InstrumentTask):
             pass
 
         self.driver.set_config(config_to_set)
-        self.driver.execute_program(program_to_execute, self.duration_limit,
-                                    self.data_limit)
+        self.driver.execute_program(program_to_execute)
 
-        self.driver.wait_for_all_results(self.duration_limit)
+        self.driver.wait_for_all_results()
         results = self.driver.get_results()
 
         for k in results.variable_results.__dict__:
