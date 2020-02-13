@@ -26,9 +26,7 @@ enamldef ConfigureExecuteView(InstrView): view:
     """View for the ConfigureExecuteTask.
 
     """
-    constraints = [vbox(hbox(instr_label, instr_selection,
-                             duration_label, duration_field,
-                             data_label, data_field),
+    constraints = [vbox(hbox(instr_label, instr_selection, spacer),
                         hbox(config_path_label, config_path_val, config_open_button,
                              config_path_exp, refresh_config),
                         hbox(program_path_label, program_path_val, program_open_button,
@@ -38,9 +36,7 @@ enamldef ConfigureExecuteView(InstrView): view:
                         param_list),
                    align('left', config_path_val, program_path_val),
                    align('left', refresh_config, refresh_program),
-                   align('v_center', instr_label, instr_selection,
-                         duration_label, duration_field,
-                         data_label, data_field),
+                   align('v_center', instr_label, instr_selection),
                    align('v_center', save_path_label, save_path_val,
                          save_prefix_label, save_prefix_val),
                    align('v_center', program_path_label, program_path_val,
@@ -48,7 +44,6 @@ enamldef ConfigureExecuteView(InstrView): view:
                    align('v_center', config_path_label, config_path_val,
                          config_open_button, config_path_exp, refresh_config),
                    save_path_val.width == save_prefix_val.width]
-
 
     Label: config_path_label:
         text = "Path to the configuration file"
@@ -108,18 +103,6 @@ enamldef ConfigureExecuteView(InstrView): view:
         entries_updater << task.list_accessible_database_entries
         tool_tip = fill("Prefix used in front of the config and program files "
                         "when saving them.")
-
-    Label: duration_label:
-        text = "Duration limit"
-    IntField: duration_field:
-        value := task.duration_limit
-        tool_tip = fill("The duration limit")
-
-    Label: data_label:
-        text = "Data limit"
-    IntField: data_field:
-        value := task.data_limit
-        tool_tip = fill("The data limit")
 
     PushButton: refresh_program:
         text = 'Refresh'
