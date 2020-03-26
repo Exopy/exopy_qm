@@ -130,7 +130,16 @@ class ConfigureExecuteTask(InstrumentTask):
         self.driver.execute_program(program_to_execute)
 
         self.driver.wait_for_all_results()
-        results = self.driver.get_results()
+
+        # Workaround for a weird bug: just retry
+        try:
+            results = self.driver.get_results()
+        except FileNotFoundError:
+            logger.info("Working around a weird bug, retrying")
+            self.driver.execute_program(program_to_execute)
+            self.driver.wait_for_all_results()
+            results = self.driver.get_results()
+
 
         for k in results.variable_results.__dict__:
             self.write_in_database('variable_' + k,
