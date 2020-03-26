@@ -42,6 +42,9 @@ class ConfigureExecuteTask(InstrumentTask):
 
     """
 
+    #: Flag indicating whether or not the timestamps should be saved
+    save_timestamps = Bool(False).tag(pref=True)
+
     #: Path to the python configuration file
     path_to_config_file = Unicode().tag(pref=True)
 
@@ -140,10 +143,11 @@ class ConfigureExecuteTask(InstrumentTask):
             self.driver.wait_for_all_results()
             results = self.driver.get_results()
 
-
         for k in results.variable_results.__dict__:
-            self.write_in_database('variable_' + k,
-                                   getattr(results.variable_results, k).values)
+            data = getattr(results.variable_results, k)
+            self.write_in_database('variable_' + k, data.values)
+            if self.save_timestamps:
+                self.write_in_database('variable_ts_' + k, data.ts_nsec)
 
         # This is currently broken and for now, all the raw variables
         # contain all the raw data
@@ -390,6 +394,8 @@ class ConfigureExecuteTask(InstrumentTask):
 
         for i in saved_vars:
             de['variable_' + i] = 0.0
+            if self.save_timestamps:
+                de['variable_ts_' + i] = 0.0
         for i in saved_adc_data:
             de['raw_' + i + '_1'] = [0.0]
             de['raw_' + i + '_2'] = [0.0]
