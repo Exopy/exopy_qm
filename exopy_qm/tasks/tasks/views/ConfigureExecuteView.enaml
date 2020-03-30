@@ -33,7 +33,8 @@ enamldef ConfigureExecuteView(InstrView): view:
                              program_path_exp, refresh_program),
                         hbox(save_path_label, save_path_val,
                              save_prefix_label, save_prefix_val),
-                        param_list),
+                        param_list,
+                        hbox(simulation_duration_label, simulation_duration, simulate)),
                    align('left', config_path_val, program_path_val),
                    align('left', refresh_config, refresh_program),
                    align('v_center', instr_label, instr_selection, timestamps),
@@ -132,3 +133,11 @@ enamldef ConfigureExecuteView(InstrView): view:
                     tool_tip = EVALUATER_TOOLTIP
                 Label: label_comment:
                     text = task.comments[loop_item]
+
+    Label: simulation_duration_label:
+	    text = "Duration (ns)"
+    IntField: simulation_duration:
+	    text := task.simulation_duration
+    PushButton: simulate:
+        text = 'Simulate'
+        clicked :: task.simulate()

@@ -4,11 +4,16 @@ import importlib.util
 import logging
 from pathlib import Path
 import shutil
+import tempfile
 import time
 
+import matplotlib.pyplot as plt
+import qm.qua
 from atom.api import Float, Int, List, Typed, Unicode, Value, Bool
 from exopy.tasks.api import InstrumentTask
-import qm.qua
+from qm.QuantumMachinesManager import QuantumMachinesManager
+from qm import SimulationConfig
+from qm.results.SimulatorSamples import SimulatorSamples
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +67,9 @@ class ConfigureExecuteTask(InstrumentTask):
 
     #: Comments associated with the parameters
     comments = Typed(dict).tag(pref=True)
+
+    #: Duration of the simulation in ns
+    simulation_duration = Unicode(default="1000").tag(pref=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -173,6 +181,34 @@ class ConfigureExecuteTask(InstrumentTask):
     def refresh_program(self):
         self._post_setattr_path_to_program_file(self.path_to_program_file,
                                                 self.path_to_program_file)
+
+    def simulate(self):
+        self._update_parameters()
+
+        # Evaluate all parameters
+        evaluated_parameters = {}
+        for key, value in self.parameters.items():
+            evaluated_parameters[key] = self.format_and_eval_string(value)
+
+        config_to_set = self._config_module.get_config(evaluated_parameters)
+        program_to_execute = self._program_module.get_prog(
+            evaluated_parameters)
+
+        qmm = QuantumMachinesManager()
+        qmObj = qmm.open_qm(config_to_set, close_other_machines=True)
+        job = qmObj.simulate(program_to_execute, SimulationConfig(
+            duration = int(self.simulation_duration)//4,
+            include_analog_waveforms=True))
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            samples = SimulatorSamples.from_npz(job.get_saved_simulated_samples(path=tmpdirname))
+
+        for port, samples in samples.con1.analog.items():
+            plt.plot(samples, label=f"{port}")
+        plt.xlabel("Time [ns]")
+        plt.ylabel("DAC")
+        plt.legend()
+        plt.show()
+
 
     #--------------------------Private API------------------------------#
 
