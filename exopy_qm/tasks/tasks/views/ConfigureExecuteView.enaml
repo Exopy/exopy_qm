@@ -10,6 +10,7 @@ from enaml.layout.api import hbox, vbox, spacer, align
 from exopy.app.icons.api import get_icon
 from exopy.tasks.api import EVALUATER_TOOLTIP
 from exopy.utils.widgets.qt_completers import QtLineCompleter
+from exopy.measurement.workspace.measurement_edition import MeasEditionView
 
 
 from .base_instr_view import InstrView
@@ -140,4 +141,15 @@ enamldef ConfigureExecuteView(InstrView): view:
 	    text := task.simulation_duration
     PushButton: simulate:
         text = 'Simulate'
-        clicked :: task.simulate()
+        clicked ::
+            wi = view
+            while not isinstance(wi, MeasEditionView):
+                wi = wi.parent
+            meas = wi.measurement
+            core = view.root.core
+            cmd = 'exopy.measurement.get_task_runtime'
+            runtime = core.invoke_command(cmd,
+                                       {'task': task,
+                                        'measurement': meas})
+            with runtime:
+                task.simulate()

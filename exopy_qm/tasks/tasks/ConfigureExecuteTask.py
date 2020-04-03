@@ -183,6 +183,10 @@ class ConfigureExecuteTask(InstrumentTask):
                                                 self.path_to_program_file)
 
     def simulate(self):
+        """Simulate the program using the OPX
+
+        Is always executed outside of a measurement, during editing
+        """
         self._update_parameters()
 
         # Evaluate all parameters
@@ -194,21 +198,10 @@ class ConfigureExecuteTask(InstrumentTask):
         program_to_execute = self._program_module.get_prog(
             evaluated_parameters)
 
-        qmm = QuantumMachinesManager()
-        qmObj = qmm.open_qm(config_to_set, close_other_machines=True)
-        job = qmObj.simulate(program_to_execute, SimulationConfig(
-            duration = int(self.simulation_duration)//4,
-            include_analog_waveforms=True))
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            samples = SimulatorSamples.from_npz(job.get_saved_simulated_samples(path=tmpdirname))
-
-        for port, samples in samples.con1.analog.items():
-            plt.plot(samples, label=f"{port}")
-        plt.xlabel("Time [ns]")
-        plt.ylabel("DAC")
-        plt.legend()
-        plt.show()
-
+        with self.test_driver() as driver:
+            driver.set_config(config_to_set)
+            driver.simulate_program(program_to_execute,
+                                    duration=int(self.simulation_duration)//4)
 
     #--------------------------Private API------------------------------#
 
