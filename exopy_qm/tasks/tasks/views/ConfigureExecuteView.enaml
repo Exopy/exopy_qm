@@ -10,6 +10,7 @@ from enaml.layout.api import hbox, vbox, spacer, align
 from exopy.app.icons.api import get_icon
 from exopy.tasks.api import EVALUATER_TOOLTIP
 from exopy.utils.widgets.qt_completers import QtLineCompleter
+from exopy.measurement.workspace.measurement_edition import MeasEditionView
 
 
 from .base_instr_view import InstrView
@@ -33,7 +34,8 @@ enamldef ConfigureExecuteView(InstrView): view:
                              program_path_exp, refresh_program),
                         hbox(save_path_label, save_path_val,
                              save_prefix_label, save_prefix_val),
-                        param_list),
+                        param_list,
+                        hbox(simulation_duration_label, simulation_duration, simulate)),
                    align('left', config_path_val, program_path_val),
                    align('left', refresh_config, refresh_program),
                    align('v_center', instr_label, instr_selection, timestamps),
@@ -132,3 +134,22 @@ enamldef ConfigureExecuteView(InstrView): view:
                     tool_tip = EVALUATER_TOOLTIP
                 Label: label_comment:
                     text = task.comments[loop_item]
+
+    Label: simulation_duration_label:
+	    text = "Duration (ns)"
+    IntField: simulation_duration:
+	    text := task.simulation_duration
+    PushButton: simulate:
+        text = 'Simulate'
+        clicked ::
+            wi = view
+            while not isinstance(wi, MeasEditionView):
+                wi = wi.parent
+            meas = wi.measurement
+            core = view.root.core
+            cmd = 'exopy.measurement.get_task_runtime'
+            runtime = core.invoke_command(cmd,
+                                       {'task': task,
+                                        'measurement': meas})
+            with runtime:
+                task.simulate()

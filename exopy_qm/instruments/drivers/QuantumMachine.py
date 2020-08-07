@@ -2,6 +2,7 @@ import logging
 import tempfile
 
 from qm.QuantumMachinesManager import QuantumMachinesManager
+from qm import SimulationConfig
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +78,20 @@ class QuantumMachine(object):
                                       duration_limit=duration_limit,
                                       data_limit=data_limit,
                                       force_execution=True)
+
+    @requires_config
+    def simulate_program(self, prog, duration):
+        """ Simulate the program on the OPX
+
+        The duration parameter specifies the number of FPGA cycles
+        of the simulation (4ns/cycle).
+        This functions opens a matplotlib popup with the results.
+        """
+        self.job = self.qmObj.simulate(prog, SimulationConfig(
+            duration = duration,
+            include_analog_waveforms=True))
+        samples = self.job.get_simulated_samples()
+        samples.con1.plot(digital_ports=(0,))
 
     def is_paused(self):
         return self.job.is_paused()
