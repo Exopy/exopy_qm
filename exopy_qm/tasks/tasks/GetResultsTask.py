@@ -2,7 +2,7 @@ import gzip
 import json
 
 from exopy.tasks.api import (InstrumentTask)
-from atom.api import Float, Unicode, Str, set_default
+from atom.api import Float, Str, Str, set_default
 from qm.qua import *
 
 
@@ -14,7 +14,7 @@ class GetResultsTask(InstrumentTask):
 
     database_entries = set_default({'variables': {}, 'raw': {}})
 
-    results_file_path = Unicode().tag(pref=True)
+    results_file_path = Str().tag(pref=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

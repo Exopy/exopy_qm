@@ -1,7 +1,7 @@
 import importlib
 
 from exopy.tasks.api import (InstrumentTask)
-from atom.api import Unicode, Long
+from atom.api import Str, Long
 import sys
 import os
 import shutil
@@ -13,7 +13,7 @@ from exopy_qm.utils.dynamic_importer import *
 class ExecuteProgramTask(InstrumentTask):
     """ Executes a qua program.
     """
-    path_to_program_file = Unicode().tag(pref=True)
+    path_to_program_file = Str().tag(pref=True)
     duration_limit = Long(default=int(1000)).tag(pref=True)
     data_limit = Long(default=int(20000)).tag(pref=True)
 

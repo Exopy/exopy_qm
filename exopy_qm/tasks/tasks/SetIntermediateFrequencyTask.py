@@ -1,11 +1,11 @@
 from exopy.tasks.api import (InstrumentTask)
-from atom.api import Float, Unicode
+from atom.api import Float, Str
 
 
 class SetIntermediateFrequencyTask(InstrumentTask):
     """ Sets the intermediate frequency of the given element.
     """
-    element = Unicode().tag(pref=True)
+    element = Str().tag(pref=True)
     intermediate_frequency = Float().tag(pref=True)
 
     def __init__(self, **kwargs):

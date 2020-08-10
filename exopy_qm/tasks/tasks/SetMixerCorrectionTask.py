@@ -1,5 +1,5 @@
 from exopy.tasks.api import (InstrumentTask, validators)
-from atom.api import Unicode
+from atom.api import Str
 import numbers
 
 EMPTY_REAL = validators.SkipEmpty(types=numbers.Real)
@@ -9,14 +9,14 @@ EMPTY_INT = validators.SkipEmpty(types=numbers.Integral)
 class SetMixerCorrectionTask(InstrumentTask):
     """ Sets the mixer's correction matrix
     """
-    mixer = Unicode().tag(pref=True)
-    intermediate_frequency = Unicode().tag(pref=True, feval=EMPTY_INT)
-    lo_frequency = Unicode().tag(pref=True, feval=EMPTY_INT)
+    mixer = Str().tag(pref=True)
+    intermediate_frequency = Str().tag(pref=True, feval=EMPTY_INT)
+    lo_frequency = Str().tag(pref=True, feval=EMPTY_INT)
 
-    v00 = Unicode().tag(pref=True, feval=EMPTY_REAL)
-    v01 = Unicode().tag(pref=True, feval=EMPTY_REAL)
-    v10 = Unicode().tag(pref=True, feval=EMPTY_REAL)
-    v11 = Unicode().tag(pref=True, feval=EMPTY_REAL)
+    v00 = Str().tag(pref=True, feval=EMPTY_REAL)
+    v01 = Str().tag(pref=True, feval=EMPTY_REAL)
+    v10 = Str().tag(pref=True, feval=EMPTY_REAL)
+    v11 = Str().tag(pref=True, feval=EMPTY_REAL)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

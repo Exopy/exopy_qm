@@ -1,5 +1,5 @@
 from exopy.tasks.api import (InstrumentTask)
-from atom.api import Unicode, Bool
+from atom.api import Str, Bool
 
 from exopy_qm.utils.utils import is_int, is_float
 
@@ -8,10 +8,10 @@ class SetIOValuesTask(InstrumentTask):
     """ Sets the IO values
     """
     set_io_1 = Bool(True).tag(pref=True)
-    io_1_value = Unicode().tag(pref=True)
+    io_1_value = Str().tag(pref=True)
 
     set_io_2 = Bool(True).tag(pref=True)
-    io_2_value = Unicode().tag(pref=True)
+    io_2_value = Str().tag(pref=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
