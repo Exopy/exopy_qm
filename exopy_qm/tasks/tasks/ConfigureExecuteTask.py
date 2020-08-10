@@ -9,7 +9,7 @@ import time
 
 import matplotlib.pyplot as plt
 import qm.qua
-from atom.api import Float, Int, List, Typed, Unicode, Value, Bool
+from atom.api import Float, Int, List, Typed, Str, Value, Bool
 from exopy.tasks.api import InstrumentTask
 from qm.QuantumMachinesManager import QuantumMachinesManager
 from qm import SimulationConfig
@@ -51,16 +51,16 @@ class ConfigureExecuteTask(InstrumentTask):
     save_timestamps = Bool(False).tag(pref=True)
 
     #: Path to the python configuration file
-    path_to_config_file = Unicode().tag(pref=True)
+    path_to_config_file = Str().tag(pref=True)
 
     #: Path to the python program file
-    path_to_program_file = Unicode().tag(pref=True)
+    path_to_program_file = Str().tag(pref=True)
 
     #: Path to the folder where the config and program files are saved
-    path_to_save = Unicode(default="{default_path}/configs_and_progs").tag(pref=True)
+    path_to_save = Str(default="{default_path}/configs_and_progs").tag(pref=True)
 
     #: Prefix used when saving the configuration and program files
-    save_prefix = Unicode(default="{meas_id}").tag(pref=True)
+    save_prefix = Str(default="{meas_id}").tag(pref=True)
 
     #: Parameters entered by the user for the program and config
     parameters = Typed(dict).tag(pref=True)
@@ -69,7 +69,7 @@ class ConfigureExecuteTask(InstrumentTask):
     comments = Typed(dict).tag(pref=True)
 
     #: Duration of the simulation in ns
-    simulation_duration = Unicode(default="1000").tag(pref=True)
+    simulation_duration = Str(default="1000").tag(pref=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

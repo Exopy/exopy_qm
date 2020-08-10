@@ -1,12 +1,12 @@
 from exopy.tasks.api import (InstrumentTask)
-from atom.api import Int, Unicode, Str, set_default
+from atom.api import Int, Str, Str, set_default
 
 
 class SetDigitalDelayTask(InstrumentTask):
     """ Sets the digital delay by the given element and port
     """
-    element = Unicode().tag(pref=True)
-    digital_input = Unicode().tag(pref=True)
+    element = Str().tag(pref=True)
+    digital_input = Str().tag(pref=True)
     delay = Int().tag(pref=True)
 
     def __init__(self, **kwargs):
