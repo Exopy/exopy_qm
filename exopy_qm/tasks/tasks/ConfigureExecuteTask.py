@@ -47,9 +47,6 @@ class ConfigureExecuteTask(InstrumentTask):
 
     """
 
-    #: Flag indicating whether or not the timestamps should be saved
-    save_timestamps = Bool(False).tag(pref=True)
-
     #: Path to the python configuration file
     path_to_config_file = Str().tag(pref=True)
 
@@ -141,38 +138,13 @@ class ConfigureExecuteTask(InstrumentTask):
         self.driver.execute_program(program_to_execute)
 
         self.driver.wait_for_all_results()
-
-        # Workaround for a weird bug: just retry
-        try:
-            results = self.driver.get_results()
-        except FileNotFoundError:
-            logger.info("Working around a weird bug, retrying")
-            self.driver.execute_program(program_to_execute)
-            self.driver.wait_for_all_results()
-            results = self.driver.get_results()
-
-        for k in results.variable_results.__dict__:
-            data = getattr(results.variable_results, k)
-            self.write_in_database('variable_' + k, data.values)
-            if self.save_timestamps:
-                self.write_in_database('variable_ts_' + k, data.ts_nsec)
-
-        # This is currently broken and for now, all the raw variables
-        # contain all the raw data
-        for tag in self._raw_tags:
-            # data_tag = results.raw_results.get_tagged_streams(tag)
-
-            # merged_data = np.concatenate(data_tag, axis=0)
-            # self.write_in_database('raw_' + tag + '_1', merged_data.input1)
-            # self.write_in_database('raw_' + tag + '_2', merged_data.input2)
-            self.write_in_database('raw_' + tag + '_1',
-                                   results.raw_results.input1.values)
-            self.write_in_database('raw_' + tag + '_2',
-                                   results.raw_results.input2.values)
-
-            # if data_tag.data_loss:
-                # logger.warning(f"[Trace {k}] Data loss detected, "
-                #                f"you should increase the waiting time")
+            
+        results = self.driver.get_results()
+        
+        for (name, handle) in results:
+            if name.endswith('_input1') or name.endswith('_input2'):
+                name = name[:-7]
+            self.write_in_database(f"variable_{name}", handle.fetch_all())
 
     def refresh_config(self):
         self._post_setattr_path_to_config_file(self.path_to_config_file,
@@ -211,9 +183,6 @@ class ConfigureExecuteTask(InstrumentTask):
     #: Module containing the program file
     _program_module = Value()
 
-    #: List of all the tags used in the raw data
-    _raw_tags = List()
-
     def _post_setattr_path_to_program_file(self, old, new):
         self._program_module = None
 
@@ -230,7 +199,7 @@ class ConfigureExecuteTask(InstrumentTask):
                 logger.error(f"File {self.path_to_program_file} is not a "
                              f"python file")
             except Exception as e:
-                logger.error(f"An exception occured when trying to import "
+                logger.error(f"An exception occurred when trying to import "
                              f"{self.path_to_program_file}")
                 logger.error(e)
             else:
@@ -255,7 +224,7 @@ class ConfigureExecuteTask(InstrumentTask):
                 logger.error(
                     f"File {self.path_to_config_file} is not a python file")
             except Exception as e:
-                logger.error(f"An exception occured when trying to import "
+                logger.error(f"An exception occurred when trying to import "
                              f"{self.path_to_config_file}")
                 logger.error(e)
             else:
@@ -279,7 +248,7 @@ class ConfigureExecuteTask(InstrumentTask):
                              f"have a get_parameters function "
                              f"with no arguments.")
             except Exception as e:
-                logger.error(f"An exception occured when trying to get the "
+                logger.error(f"An exception occurred when trying to get the "
                              f"parameters from {self.path_to_config_file}")
                 logger.error(e)
 
@@ -291,7 +260,7 @@ class ConfigureExecuteTask(InstrumentTask):
                 logger.error(f"{self.path_to_program_file} needs "
                              f"to have a get_parameters function")
             except Exception as e:
-                logger.error(f"An exception occured when trying to get the "
+                logger.error(f"An exception occurred when trying to get the "
                              f"parameters from {self.path_to_program_file}")
                 logger.error(e)
 
@@ -331,9 +300,13 @@ class ConfigureExecuteTask(InstrumentTask):
         """Attempts to find the variables saved in a QUA program
 
         There are 2 types are variables: scalars and raw ADC data.
-        Scalars have to be explicitely saved with a call to the save
+        Scalars have to be explicitly saved with a call to the save
         function whereas raw ADC data can be saved by using a string
         instead of None as the third argument of the measure function.
+        
+        New in v4: there are now streams that can be declared in the QUA 
+        program and saved in a special stream_processing section of the 
+        QUA program.
 
         The strategy employed here to find the name of the variables
         is
@@ -345,16 +318,15 @@ class ConfigureExecuteTask(InstrumentTask):
         3) Find a with statement that defines that variable (with the
         program() context manager)
 
-        4) Find all instances of save() and measure() inside the with
-        statement.
-
+        4) Find all instances of save(), save_all() and measure() inside 
+        the with statement.
+        
         In the end, we are (almost) guaranteed to find a superset of
         all variables that will be returned by the OPX.
 
         """
 
         saved_vars = set([])
-        saved_adc_data = set([])
         get_results_fun, prog_name, program_node = None, None, None
 
         # Make sure the program is somewhat valid before parsing it
@@ -364,7 +336,7 @@ class ConfigureExecuteTask(InstrumentTask):
                     try:
                         root = ast.parse(f.read())
                     except Exception as e:
-                        logger.error(f"An error occured when parsing "
+                        logger.error(f"An error occurred when parsing "
                                      f"{self.path_to_program_file}")
                         logger.error(e)
                         raise ParseError
@@ -403,11 +375,13 @@ class ConfigureExecuteTask(InstrumentTask):
                 for i in ast.walk(program_node):
                     if isinstance(i, ast.Call) and isinstance(
                             i.func, ast.Name):
-                        if i.func.id == 'save':
+                        if i.func.id == 'save' and isinstance(i.args[1], ast.Str):
                             saved_vars.add(i.args[1].s)
                         elif (i.func.id == 'measure'
                               and isinstance(i.args[2], ast.Str)):
-                            saved_adc_data.add(i.args[2].s)
+                            saved_vars.add(i.args[2].s)
+                    elif isinstance(i, ast.Call) and isinstance(i.func, ast.Attribute) and i.func.attr in ['save', 'save_all']:
+                        saved_vars.add(i.args[0].s)
 
         except ParseError:
             logger.error("Unable to parse the program file to find "
@@ -416,17 +390,10 @@ class ConfigureExecuteTask(InstrumentTask):
         # Update the database
         de = self.database_entries.copy()
         for k in self.database_entries:
-            if k.startswith('variable') or k.startswith('raw'):
+            if k.startswith('variable'):
                 del de[k]
 
-        self._raw_tags = list(saved_adc_data)
-
         for i in saved_vars:
-            de['variable_' + i] = 0.0
-            if self.save_timestamps:
-                de['variable_ts_' + i] = 0.0
-        for i in saved_adc_data:
-            de['raw_' + i + '_1'] = [0.0]
-            de['raw_' + i + '_2'] = [0.0]
+            de['variable_' + i] = [0.0]
 
         self.database_entries = de
