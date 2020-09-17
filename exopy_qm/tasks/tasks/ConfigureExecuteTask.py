@@ -144,7 +144,7 @@ class ConfigureExecuteTask(InstrumentTask):
         for (name, handle) in results:
             if name.endswith('_input1') or name.endswith('_input2'):
                 name = name[:-7]
-            self.write_in_database(f"variable_{name}", handle.fetch_all())
+            self.write_in_database(f"variable_{name}", handle.fetch_all()['value'])
 
     def refresh_config(self):
         self._post_setattr_path_to_config_file(self.path_to_config_file,

@@ -113,11 +113,11 @@ class QuantumMachine(object):
     def wait_for_all_results(self, ):
         """Wait for the current job to be completed.
         """
-        self.job.result_handles.wait_for_all_results()
+        self.job.result_handles.wait_for_all_values()
 
     @requires_config
     def get_results(self, path=None):
-        return self.job.result.handles
+        return self.job.result_handles
 
     @requires_config
     def set_io_values(self, io1_value, io2_value):
