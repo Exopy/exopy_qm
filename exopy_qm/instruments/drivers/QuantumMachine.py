@@ -92,6 +92,8 @@ class QuantumMachine(object):
             include_analog_waveforms=True))
         samples = self.job.get_simulated_samples()
         samples.con1.plot(digital_ports=(0,))
+        import matplotlib.pyplot as plt
+        plt.show()
 
     def is_paused(self):
         return self.job.is_paused()
@@ -108,23 +110,14 @@ class QuantumMachine(object):
         self.qmObj.set_input_dc_offset_by_element(element, output, offset)
 
     @requires_config
-    def wait_for_all_results(self, timeout=3600):
+    def wait_for_all_results(self, ):
         """Wait for the current job to be completed.
-
-        The default timeout is 1 hour.
-
         """
-        self.job.wait_for_all_results(timeout)
+        self.job.result_handles.wait_for_all_values()
 
-    # TODO: Add data loss handling
     @requires_config
     def get_results(self, path=None):
-        if not path:
-            with tempfile.TemporaryDirectory() as tmpdirname:
-                return self.job.get_results(path=tmpdirname,
-                                            ignore_data_loss=True)
-        else:
-            return self.job.get_results(path=path, ignore_data_loss=True)
+        return self.job.result_handles
 
     @requires_config
     def set_io_values(self, io1_value, io2_value):

@@ -27,7 +27,7 @@ enamldef ConfigureExecuteView(InstrView): view:
     """View for the ConfigureExecuteTask.
 
     """
-    constraints = [vbox(hbox(instr_label, instr_selection, spacer, timestamps),
+    constraints = [vbox(hbox(instr_label, instr_selection, spacer),
                         hbox(config_path_label, config_path_val, config_open_button,
                              config_path_exp, refresh_config),
                         hbox(program_path_label, program_path_val, program_open_button,
@@ -38,7 +38,7 @@ enamldef ConfigureExecuteView(InstrView): view:
                         hbox(simulation_duration_label, simulation_duration, simulate)),
                    align('left', config_path_val, program_path_val),
                    align('left', refresh_config, refresh_program),
-                   align('v_center', instr_label, instr_selection, timestamps),
+                   align('v_center', instr_label, instr_selection),
                    align('v_center', save_path_label, save_path_val,
                          save_prefix_label, save_prefix_val),
                    align('v_center', program_path_label, program_path_val,
@@ -46,12 +46,6 @@ enamldef ConfigureExecuteView(InstrView): view:
                    align('v_center', config_path_label, config_path_val,
                          config_open_button, config_path_exp, refresh_config),
                    save_path_val.width == save_prefix_val.width]
-
-    CheckBox: timestamps:
-        text = "Save timestamps"
-        checked := task.save_timestamps
-        tool_tip = fill("Only applied to saved variables "
-                        "and not to raw data")
 
     Label: config_path_label:
         text = "Path to the configuration file"
