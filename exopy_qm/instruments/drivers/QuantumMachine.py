@@ -3,6 +3,7 @@ import tempfile
 
 from qm.QuantumMachinesManager import QuantumMachinesManager
 from qm import SimulationConfig
+from  exopy_hqc_legacy.instruments.drivers.driver_tools import BaseInstrument
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +20,15 @@ def requires_config(func):
     return wrapper
 
 
-class QuantumMachine(object):
-    def __init__(self, connection_info):
+class QuantumMachine(BaseInstrument):
+
+    caching_permissions = {}
+
+    def __init__(self, connection_info, caching_allowed=True,
+                 caching_permissions={}, auto_open=True):
+        super(QuantumMachine, self).__init__(connection_info, caching_allowed,
+                                             caching_permissions,auto_open)
+
         self.connection_info = connection_info
 
         port = ""
