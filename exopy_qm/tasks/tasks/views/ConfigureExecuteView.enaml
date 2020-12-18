@@ -27,7 +27,7 @@ enamldef ConfigureExecuteView(InstrView): view:
     """View for the ConfigureExecuteTask.
 
     """
-    constraints = [vbox(hbox(instr_label, instr_selection, spacer),
+    constraints = [vbox(hbox(instr_label, instr_selection,pause_mode_label,pause_mode_value, spacer),
                         hbox(config_path_label, config_path_val, config_open_button,
                              config_path_exp, refresh_config),
                         hbox(program_path_label, program_path_val, program_open_button,
@@ -45,7 +45,14 @@ enamldef ConfigureExecuteView(InstrView): view:
                          program_open_button, program_path_exp, refresh_program),
                    align('v_center', config_path_label, config_path_val,
                          config_open_button, config_path_exp, refresh_config),
-                   save_path_val.width == save_prefix_val.width]
+                   save_path_val.width == save_prefix_val.width,
+                   pause_mode_label.width==pause_mode_value.width,
+                   instr_label.width==pause_mode_value.width]
+
+    Label: pause_mode_label:
+        text = 'Pause mode'
+    CheckBox: pause_mode_value:
+        checked := task.pause_mode
 
     Label: config_path_label:
         text = "Path to the configuration file"

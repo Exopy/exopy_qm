@@ -81,6 +81,11 @@ enamldef QmManifest(PluginManifest):
                 task = 'ConfigureExecuteTask:ConfigureExecuteTask'
                 view = 'views.ConfigureExecuteView:ConfigureExecuteView'
                 instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+            
+            Task:
+                task = 'MeasureWithPauseTask:MeasureWithPauseTask'
+                view = 'views.MeasureWithPauseView:MeasureWithPauseView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
 
             Task:
                 task = 'ExecuteProgramTask:ExecuteProgramTask'

@@ -1,0 +1,23 @@
+import os, sys, subprocess
+from textwrap import fill
+
+from enaml.core.api import Looper
+from enaml.widgets.api import (CheckBox, GroupBox, Label, Field,
+                               ObjectCombo, ToolButton, FileDialogEx,
+                               PushButton, Container)
+from enaml.stdlib.fields import FloatField, Field, IntField
+from enaml.layout.api import hbox, vbox, spacer, align
+from exopy.app.icons.api import get_icon
+from exopy.tasks.api import EVALUATER_TOOLTIP
+from exopy.utils.widgets.qt_completers import QtLineCompleter
+from exopy.measurement.workspace.measurement_edition import MeasEditionView
+
+from .base_instr_view import InstrView
+
+enamldef MeasureWithPauseView(InstrView): view:
+    """View for the MeasureWithPauseTask.
+
+    """
+    constraints = [hbox(instr_label, instr_selection,spacer)]
+
+
