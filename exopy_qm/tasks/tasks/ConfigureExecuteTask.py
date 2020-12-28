@@ -144,7 +144,16 @@ class ConfigureExecuteTask(InstrumentTask):
         for (name, handle) in results:
             if name.endswith('_input1') or name.endswith('_input2'):
                 name = name[:-7]
-            self.write_in_database(f"variable_{name}", handle.fetch_all()['value'])
+            data = handle.fetch_all()
+            # When using the old school syntax for saving, the value is returned alongside the timestamp
+            # when this is the case, we discard the timestamp
+            try:
+                data = data['value']
+            except (TypeError, IndexError):
+                pass
+            self.write_in_database(f"variable_{name}", data)
+            if handle.has_dataloss():
+                logger.warning(f"{name} might have data loss")
 
     def refresh_config(self):
         self._post_setattr_path_to_config_file(self.path_to_config_file,
