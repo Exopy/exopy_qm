@@ -38,7 +38,7 @@ setup(
     packages=find_packages(exclude=['tests', 'tests.*']),
     data_files=["VERSION", "LICENSE"],
     package_data={'': ['*.enaml']},
-    requires=['exopy'],
+    install_requires=['exopy', 'matplotlib'],
     entry_points={
         'exopy_package_extension':
         'exopy_qm = %s:list_manifests' % PROJECT_NAME}
