@@ -68,6 +68,9 @@ class ConfigureExecuteTask(InstrumentTask):
     #: Duration of the simulation in ns
     simulation_duration = Str(default="1000").tag(pref=True)
 
+    #Use the paused mode in order to rerun the program whitout recompile
+    pause_mode  = Bool(False).tag(pref=True)
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._config_module = None
@@ -137,27 +140,27 @@ class ConfigureExecuteTask(InstrumentTask):
         self.driver.set_config(config_to_set)
         self.driver.execute_program(program_to_execute)
 
-        self.driver.wait_for_all_results()
-            
-        results = self.driver.get_results()
-        report = self.driver.get_execution_report()
-        if report.has_errors():
-            for e in report.errors():
-                logger.warning(e)
-        
-        for (name, handle) in results:
-            if name.endswith('_input1') or name.endswith('_input2'):
-                name = name[:-7]
-            data = handle.fetch_all()
-            # When using the old school syntax for saving, the value is returned alongside the timestamp
-            # when this is the case, we discard the timestamp
-            try:
-                data = data['value']
-            except (TypeError, IndexError):
-                pass
-            self.write_in_database(f"variable_{name}", data)
-            if handle.has_dataloss():
-                logger.warning(f"{name} might have data loss")
+        if not self.pause_mode:
+            self.driver.wait_for_all_results()
+            results = self.driver.get_results()
+            report = self.driver.get_execution_report()
+            if report.has_errors():
+                for e in report.errors():
+                    logger.warning(e)
+
+            for (name, handle) in results:
+                if name.endswith('_input1') or name.endswith('_input2'):
+                    name = name[:-7]
+                data = handle.fetch_all()
+                # When using the old school syntax for saving, the value is returned alongside the timestamp
+                # when this is the case, we discard the timestamp
+                try:
+                    data = data['value']
+                except (TypeError, IndexError):
+                    pass
+                self.write_in_database(f"variable_{name}", data)
+                if handle.has_dataloss():
+                    logger.warning(f"{name} might have data loss")
 
     def refresh_config(self):
         self._post_setattr_path_to_config_file(self.path_to_config_file,
@@ -316,9 +319,9 @@ class ConfigureExecuteTask(InstrumentTask):
         Scalars have to be explicitly saved with a call to the save
         function whereas raw ADC data can be saved by using a string
         instead of None as the third argument of the measure function.
-        
-        New in v4: there are now streams that can be declared in the QUA 
-        program and saved in a special stream_processing section of the 
+
+        New in v4: there are now streams that can be declared in the QUA
+        program and saved in a special stream_processing section of the
         QUA program.
 
         The strategy employed here to find the name of the variables
@@ -331,9 +334,9 @@ class ConfigureExecuteTask(InstrumentTask):
         3) Find a with statement that defines that variable (with the
         program() context manager)
 
-        4) Find all instances of save(), save_all() and measure() inside 
+        4) Find all instances of save(), save_all() and measure() inside
         the with statement.
-        
+
         In the end, we are (almost) guaranteed to find a superset of
         all variables that will be returned by the OPX.
 
