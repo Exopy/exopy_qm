@@ -140,6 +140,10 @@ class ConfigureExecuteTask(InstrumentTask):
         self.driver.wait_for_all_results()
             
         results = self.driver.get_results()
+        report = self.driver.get_execution_report()
+        if report.has_errors():
+            for e in report.errors():
+                logger.warning(e)
         
         for (name, handle) in results:
             if name.endswith('_input1') or name.endswith('_input2'):

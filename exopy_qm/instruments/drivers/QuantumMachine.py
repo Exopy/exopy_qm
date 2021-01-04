@@ -128,6 +128,10 @@ class QuantumMachine(BaseInstrument):
         return self.job.result_handles
 
     @requires_config
+    def get_execution_report(self, path=None):
+        return self.job.execution_report()        
+
+    @requires_config
     def set_io_values(self, io1_value, io2_value):
         self.qmObj.set_io_values(io1_value, io2_value)
 
