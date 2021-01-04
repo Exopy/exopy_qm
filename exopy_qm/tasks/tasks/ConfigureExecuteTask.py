@@ -319,9 +319,9 @@ class ConfigureExecuteTask(InstrumentTask):
         Scalars have to be explicitly saved with a call to the save
         function whereas raw ADC data can be saved by using a string
         instead of None as the third argument of the measure function.
-        
-        New in v4: there are now streams that can be declared in the QUA 
-        program and saved in a special stream_processing section of the 
+
+        New in v4: there are now streams that can be declared in the QUA
+        program and saved in a special stream_processing section of the
         QUA program.
 
         The strategy employed here to find the name of the variables
@@ -334,9 +334,9 @@ class ConfigureExecuteTask(InstrumentTask):
         3) Find a with statement that defines that variable (with the
         program() context manager)
 
-        4) Find all instances of save(), save_all() and measure() inside 
+        4) Find all instances of save(), save_all() and measure() inside
         the with statement.
-        
+
         In the end, we are (almost) guaranteed to find a superset of
         all variables that will be returned by the OPX.
 
@@ -413,4 +413,3 @@ class ConfigureExecuteTask(InstrumentTask):
             de['variable_' + i] = [0.0]
 
         self.database_entries = de
-        #self.driver.varlist = saved_vars

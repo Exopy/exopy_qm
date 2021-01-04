@@ -24,36 +24,32 @@ class MeasureWithPauseTask(InstrumentTask):
         test, traceback = super(MeasureWithPauseTask,
                                 self).check(*args, **kwargs)
 
-        if not test:
-            return test, traceback
-        
-        
         return test, traceback
 
     def perform(self):
-        #assume the program is in paused and there are no data to get from the server
+        # We assume that the program is paused and there is no data to get from the server
         self.driver.resume()
-        while self.driver.is_paused()==False:
+        while not self.driver.is_paused():
             time.sleep(0.01)
         results = self.driver.get_results()
-        
-        #Create the recarray to save the data
+
+        # Create the recarray to save the data
         dt_array = []
         for (name, handle) in results:
                 if name.endswith('_input1') or name.endswith('_input2'):
                     name = name[:-7]
                 values = handle.fetch_all()
-                dt_array += [(name, values.dtype,values.shape)]
+                dt_array += [(name, values.dtype, values.shape)]
         results_recarray = np.zeros(1, dtype=dt_array)
 
-        #Save date in the recarray
+        # Save data in the recarray
         for (name, handle) in results:
             if name.endswith('_input1') or name.endswith('_input2'):
                 name = name[:-7]
             values = handle.fetch_all()
-            if type(values) is dict and 'value' in values:
+            try:
                 values = values['value']
+            except (TypeError, IndexError):
+                pass
             results_recarray[name] = values
-        self.write_in_database('Results',results_recarray )
-
-      
+        self.write_in_database('Results', results_recarray)
