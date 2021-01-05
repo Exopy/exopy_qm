@@ -4,16 +4,10 @@ import importlib.util
 import logging
 from pathlib import Path
 import shutil
-import tempfile
-import time
 
-import matplotlib.pyplot as plt
 import qm.qua
-from atom.api import Float, Int, List, Typed, Str, Value, Bool
+from atom.api import List, Typed, Str, Value, Bool
 from exopy.tasks.api import InstrumentTask
-from qm.QuantumMachinesManager import QuantumMachinesManager
-from qm import SimulationConfig
-from qm.results.SimulatorSamples import SimulatorSamples
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +62,8 @@ class ConfigureExecuteTask(InstrumentTask):
     #: Duration of the simulation in ns
     simulation_duration = Str(default="1000").tag(pref=True)
 
-    #Use the paused mode in order to rerun the program whitout recompile
-    pause_mode  = Bool(False).tag(pref=True)
+    #: Doesn't wait for the program to end if this is on
+    pause_mode = Bool(False).tag(pref=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
