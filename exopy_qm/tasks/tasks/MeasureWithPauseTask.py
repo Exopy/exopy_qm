@@ -33,6 +33,17 @@ class MeasureWithPauseTask(InstrumentTask):
             time.sleep(0.01)
         results = self.driver.get_results()
 
+        # check if the data are None, it happens if sever doesn't finish to average the data
+        isNone = True
+        while isNone:
+            for (name, handle) in results:
+                if handle.fetch_all() is None:
+                    time.sleep(0.01)
+                    results = self.driver.get_results()
+                else:
+                    isNone = False
+
+
         # Create the recarray to save the data
         dt_array = []
         for (name, handle) in results:
