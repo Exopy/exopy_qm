@@ -18,9 +18,6 @@ from exopy.tasks.api import Tasks, Task, Interface
 from exopy.instruments.api import (Starter, Connection, Drivers, Driver,
                                   Settings)
 
-#from .instruments.starters.legacy_starter import (VisaLegacyStarter,
-#                                                  DllLegacyStarter)
-
 from .instruments.starters.PythonStarter import (PythonStarter)
 
 
@@ -81,35 +78,15 @@ enamldef QmManifest(PluginManifest):
                 task = 'ConfigureExecuteTask:ConfigureExecuteTask'
                 view = 'views.ConfigureExecuteView:ConfigureExecuteView'
                 instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
-            
+
             Task:
                 task = 'MeasureWithPauseTask:MeasureWithPauseTask'
                 view = 'views.MeasureWithPauseView:MeasureWithPauseView'
                 instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
 
             Task:
-                task = 'ExecuteProgramTask:ExecuteProgramTask'
-                view = 'views.ExecuteProgramView:ExecuteProgramView'
-                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
-
-            Task:
                 task = 'ResumeProgramTask:ResumeProgramTask'
                 view = 'views.ResumeProgramView:ResumeProgramView'
-                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
-
-            Task:
-                task = 'SetOutputDcOffsetByQeTask:SetOutputDcOffsetByQeTask'
-                view = 'views.SetOutputDcOffsetByQeView:SetOutputDcOffsetByQeView'
-                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
-
-            Task:
-                task = 'SetInputDcOffsetByQeTask:SetInputDcOffsetByQeTask'
-                view = 'views.SetInputDcOffsetByQeView:SetInputDcOffsetByQeView'
-                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
-
-            Task:
-                task = 'GetResultsTask:GetResultsTask'
-                view = 'views.GetResultsView:GetResultsView'
                 instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
 
             Task:
@@ -120,24 +97,4 @@ enamldef QmManifest(PluginManifest):
             Task:
                 task = 'GetIOValuesTask:GetIOValuesTask'
                 view = 'views.GetIOValuesView:GetIOValuesView'
-                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
-
-            Task:
-                task = 'SetMixerCorrectionTask:SetMixerCorrectionTask'
-                view = 'views.SetMixerCorrectionView:SetMixerCorrectionView'
-                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
-
-            Task:
-                task = 'SetIntermediateFrequencyTask:SetIntermediateFrequencyTask'
-                view = 'views.SetIntermediateFrequencyView:SetIntermediateFrequencyView'
-                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
-
-            Task:
-                task = 'SetDigitalDelayTask:SetDigitalDelayTask'
-                view = 'views.SetDigitalDelayView:SetDigitalDelayView'
-                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
-
-            Task:
-                task = 'SetDigitalBufferTask:SetDigitalBufferTask'
-                view = 'views.SetDigitalBufferView:SetDigitalBufferView'
                 instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
