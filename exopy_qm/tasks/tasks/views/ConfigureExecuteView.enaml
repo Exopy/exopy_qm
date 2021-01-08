@@ -28,129 +28,135 @@ enamldef ConfigureExecuteView(InstrView): view:
 
     """
     constraints = [vbox(hbox(instr_label, instr_selection,pause_mode_label,pause_mode_value, spacer),
-                        hbox(config_path_label, config_path_val, config_open_button,
-                             config_path_exp, refresh_config),
-                        hbox(program_path_label, program_path_val, program_open_button,
-                             program_path_exp, refresh_program),
-                        hbox(save_path_label, save_path_val,
-                             save_prefix_label, save_prefix_val),
-                        param_list,
-                        hbox(simulation_duration_label, simulation_duration, simulate)),
-                   align('left', config_path_val, program_path_val),
-                   align('left', refresh_config, refresh_program),
-                   align('v_center', instr_label, instr_selection),
-                   align('v_center', save_path_label, save_path_val,
-                         save_prefix_label, save_prefix_val),
-                   align('v_center', program_path_label, program_path_val,
-                         program_open_button, program_path_exp, refresh_program),
-                   align('v_center', config_path_label, config_path_val,
-                         config_open_button, config_path_exp, refresh_config),
-                   save_path_val.width == save_prefix_val.width,
-                   pause_mode_label.width==pause_mode_value.width,
-                   instr_label.width==pause_mode_value.width]
+                        configprog_container,
+                        param_container,
+                        simulation_container),
+                        align('v_center', instr_label, instr_selection,pause_mode_value,pause_mode_label),
+                        pause_mode_label.width==pause_mode_value.width,
+                        instr_label.width==pause_mode_value.width]
+
 
     Label: pause_mode_label:
         text = 'Pause mode'
     CheckBox: pause_mode_value:
         checked := task.pause_mode
 
-    Label: config_path_label:
-        text = "Path to the configuration file"
-    Field: config_path_val:
-        text := task.path_to_config_file
-        tool_tip = fill("Path to the configuration file")
-    ToolButton: config_open_button:
-         hug_width = 'strong'
-         icon = get_icon(workbench, 'edit')
-         clicked ::
-             open_file_gui(config_path_val.text)
-    ToolButton: config_path_exp:
-        hug_width = 'strong'
-        icon = get_icon(workbench, 'folder-open')
-        clicked ::
-            filter =['*.py']
-            path = FileDialogEx.get_open_file_name(name_filters=filter)
-            if path:
-                config_path_val.text = path
+    GroupBox: configprog_container:
+        title = 'Config and program files'
+        constraints = [vbox(hbox(config_path_label, config_path_val, config_open_button,config_path_exp, refresh_config),
+                                hbox(program_path_label, program_path_val, program_open_button,program_path_exp, refresh_program),
+                                hbox(save_path_label, save_path_val,save_prefix_label, save_prefix_val)),
+                                align('left', config_path_val, program_path_val),
+                                align('left', refresh_config, refresh_program),
+                                align('v_center', save_path_label, save_path_val,save_prefix_label, save_prefix_val),
+                                align('v_center', program_path_label, program_path_val,program_open_button, program_path_exp, refresh_program),
+                                align('v_center', config_path_label, config_path_val,config_open_button, config_path_exp, refresh_config),
+                                save_path_val.width == save_prefix_val.width]
 
-    PushButton: refresh_config:
-        text = 'Refresh'
-        clicked ::
-            task.refresh_config()
+        Label: config_path_label:
+            text = "Path to the configuration file"
+        Field: config_path_val:
+            text := task.path_to_config_file
+            tool_tip = fill("Path to the configuration file")
+        ToolButton: config_open_button:
+                hug_width = 'strong'
+                icon = get_icon(workbench, 'edit')
+                clicked ::
+                    open_file_gui(config_path_val.text)
+        ToolButton: config_path_exp:
+            hug_width = 'strong'
+            icon = get_icon(workbench, 'folder-open')
+            clicked ::
+                filter =['*.py']
+                path = FileDialogEx.get_open_file_name(name_filters=filter)
+                if path:
+                    config_path_val.text = path
 
-    Label: program_path_label:
-        text = "Path to the program file"
-    Field: program_path_val:
-        text := task.path_to_program_file
-        tool_tip = fill("Path to QUA program file")
-    ToolButton: program_open_button:
-        hug_width = 'strong'
-        icon = get_icon(workbench, 'edit')
-        clicked ::
-            open_file_gui(program_path_val.text)
-    ToolButton: program_path_exp:
-        hug_width = 'strong'
-        icon = get_icon(workbench, 'folder-open')
-        clicked ::
-            filter =['*.py']
-            path = FileDialogEx.get_open_file_name(name_filters=filter)
-            if path:
-                program_path_val.text = path
+        PushButton: refresh_config:
+            text = 'Refresh'
+            clicked ::
+                task.refresh_config()
 
-    Label: save_path_label:
-        text = "Save directory "
-    QtLineCompleter: save_path_val:
-        text := task.path_to_save
-        entries_updater << task.list_accessible_database_entries
-        tool_tip = fill("Path to the a folder where the configuration "
-                        "and program files will be saved. If you don't "
-                        "want to save the files, leave this field empy")
-    Label: save_prefix_label:
-        text = "Prefix"
-    QtLineCompleter: save_prefix_val:
-        text := task.save_prefix
-        entries_updater << task.list_accessible_database_entries
-        tool_tip = fill("Prefix used in front of the config and program files "
-                        "when saving them.")
+        Label: program_path_label:
+            text = "Path to the program file"
+        Field: program_path_val:
+            text := task.path_to_program_file
+            tool_tip = fill("Path to QUA program file")
+        ToolButton: program_open_button:
+            hug_width = 'strong'
+            icon = get_icon(workbench, 'edit')
+            clicked ::
+                open_file_gui(program_path_val.text)
+        ToolButton: program_path_exp:
+            hug_width = 'strong'
+            icon = get_icon(workbench, 'folder-open')
+            clicked ::
+                filter =['*.py']
+                path = FileDialogEx.get_open_file_name(name_filters=filter)
+                if path:
+                    program_path_val.text = path
 
-    PushButton: refresh_program:
-        text = 'Refresh'
-        clicked ::
-            task.refresh_program()
+        Label: save_path_label:
+            text = "Save directory "
+        QtLineCompleter: save_path_val:
+            text := task.path_to_save
+            entries_updater << task.list_accessible_database_entries
+            tool_tip = fill("Path to the a folder where the configuration "
+                            "and program files will be saved. If you don't "
+                            "want to save the files, leave this field empy")
+        Label: save_prefix_label:
+            text = "Prefix"
+        QtLineCompleter: save_prefix_val:
+            text := task.save_prefix
+            entries_updater << task.list_accessible_database_entries
+            tool_tip = fill("Prefix used in front of the config and program files "
+                            "when saving them.")
 
-    Container: param_list:
-        Looper:
-            iterable << task.parameters
-            Container:
-                constraints = [hbox(label_loop, field_loop, label_comment),
-                               align('v_center', label_loop, field_loop, label_comment)]
-                padding = 2
-                Label: label_loop:
-                    text = loop_item
-                QtLineCompleter: field_loop:
-                    hug_width = 'ignore'
-                    text = task.parameters[loop_item]
-                    text >> task.parameters[loop_item]
-                    entries_updater << task.list_accessible_database_entries
-                    tool_tip = EVALUATER_TOOLTIP
-                Label: label_comment:
-                    text = task.comments[loop_item]
+        PushButton: refresh_program:
+            text = 'Refresh'
+            clicked ::
+                task.refresh_program()
 
-    Label: simulation_duration_label:
-	    text = "Duration (ns)"
-    IntField: simulation_duration:
-	    text := task.simulation_duration
-    PushButton: simulate:
-        text = 'Simulate'
-        clicked ::
-            wi = view
-            while not isinstance(wi, MeasEditionView):
-                wi = wi.parent
-            meas = wi.measurement
-            core = view.root.core
-            cmd = 'exopy.measurement.get_task_runtime'
-            runtime = core.invoke_command(cmd,
-                                       {'task': task,
-                                        'measurement': meas})
-            with runtime:
-                task.simulate()
+    GroupBox : param_container :
+        title = 'Parameters'
+
+        Container: param_list:
+            Looper:
+                iterable << task.parameters
+                Container:
+                    constraints = [hbox(label_loop, field_loop, label_comment),
+                                align('v_center', label_loop, field_loop, label_comment)]
+                    padding = 2
+                    Label: label_loop:
+                        text = loop_item
+                    QtLineCompleter: field_loop:
+                        hug_width = 'ignore'
+                        text = task.parameters[loop_item]
+                        text >> task.parameters[loop_item]
+                        entries_updater << task.list_accessible_database_entries
+                        tool_tip = EVALUATER_TOOLTIP
+                    Label: label_comment:
+                        text = task.comments[loop_item]
+
+    GroupBox : simulation_container:
+        title = 'Simulation'
+        constraints = [hbox(simulation_duration_label, simulation_duration, simulate)]
+
+        Label: simulation_duration_label:
+            text = "Duration (ns)"
+        IntField: simulation_duration:
+            text := task.simulation_duration
+        PushButton: simulate:
+            text = 'Simulate'
+            clicked ::
+                wi = view
+                while not isinstance(wi, MeasEditionView):
+                    wi = wi.parent
+                meas = wi.measurement
+                core = view.root.core
+                cmd = 'exopy.measurement.get_task_runtime'
+                runtime = core.invoke_command(cmd,
+                                        {'task': task,
+                                            'measurement': meas})
+                with runtime:
+                    task.simulate()
