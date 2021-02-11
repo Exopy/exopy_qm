@@ -31,26 +31,32 @@ class MeasureWithPauseTask(InstrumentTask):
         self.driver.resume()
         while not self.driver.is_paused():
             time.sleep(0.01)
-        results = self.driver.get_results()
 
         # check if the data are None, it happens if sever doesn't finish to average the data
         isNone = True
         while isNone:
+            results = self.driver.get_results()
+            OneIsNone = False
             for (name, handle) in results:
-                if handle.fetch_all() is None:
+                if handle.fetch_all() is None: # check is one entry of the data is None
                     time.sleep(0.01)
-                    results = self.driver.get_results()
-                else:
-                    isNone = False
+                    OneIsNone = True
+            if not OneIsNone: # wait all entries are not None before continue
+                isNone = False
+
 
 
         # Create the recarray to save the data
         dt_array = []
         for (name, handle) in results:
-                if name.endswith('_input1') or name.endswith('_input2'):
-                    name = name[:-7]
-                values = handle.fetch_all()
-                dt_array += [(name, values.dtype, values.shape)]
+            if name.endswith('_input1') or name.endswith('_input2'):
+                name = name[:-7]
+            values = handle.fetch_all()
+            try:
+                values = values['value']
+            except (TypeError, IndexError):
+                pass
+            dt_array += [(name, values.dtype, values.shape)]
         results_recarray = np.zeros(1, dtype=dt_array)
 
         # Save data in the recarray
