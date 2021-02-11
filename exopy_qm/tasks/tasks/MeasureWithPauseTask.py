@@ -37,7 +37,7 @@ class MeasureWithPauseTask(InstrumentTask):
             results = self.driver.get_results()
             one_is_none = False
             for (name, handle) in results:
-                if handle.fetch_all() is None:
+                if handle.fetch_all() is None: # check is one entry of the data is None
                     time.sleep(0.01)
                     one_is_none = True
             if not one_is_none: # wait for all entries to be not None before continuing
