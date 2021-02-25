@@ -70,6 +70,9 @@ class QuantumMachine(BaseInstrument):
         if self.qmObj:
             self.qmObj.close()
 
+    def clear_all_job_results(self):
+        self.qmm.clear_all_job_results()
+
     def set_config(self, config):
         self.qmObj = self.qmm.open_qm(config, close_other_machines=True)
 
