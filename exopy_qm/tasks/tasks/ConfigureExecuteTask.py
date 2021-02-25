@@ -135,6 +135,7 @@ class ConfigureExecuteTask(InstrumentTask):
         except NotADirectoryError:
             pass
 
+        self.driver.clear_all_job_results()
         self.driver.set_config(config_to_set)
         self.driver.execute_program(program_to_execute)
 
