@@ -173,6 +173,7 @@ class ConfigureExecuteTask(InstrumentTask):
                         data = data['value']
                     except (TypeError, IndexError):
                         pass
+                    self.write_in_database(f"variable_{name}", data)
                     results_recarray[name] = data
                 self.write_in_database('Results', results_recarray)
 
