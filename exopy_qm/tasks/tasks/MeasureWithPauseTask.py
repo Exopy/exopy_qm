@@ -50,22 +50,26 @@ class MeasureWithPauseTask(InstrumentTask):
         for (name, handle) in results:
             if name.endswith('_input1') or name.endswith('_input2'):
                 name = name[:-7]
-            values = handle.fetch_all()
+            data = handle.fetch_all()
+            # When using the old school syntax for saving, the value is returned alongside the timestamp
+            # when this is the case, we discard the timestamp
             try:
-                values = values['value']
+                data = data['value']
             except (TypeError, IndexError):
                 pass
-            dt_array += [(name, values.dtype, values.shape)]
+            dt_array += [(name, data.dtype, data.shape)]
+            if handle.has_dataloss():
+                logger.warning(f"{name} might have data loss")
         results_recarray = np.zeros(1, dtype=dt_array)
 
         # Save data in the recarray
         for (name, handle) in results:
             if name.endswith('_input1') or name.endswith('_input2'):
                 name = name[:-7]
-            values = handle.fetch_all()
+            data = handle.fetch_all()
             try:
-                values = values['value']
+                data = data['value']
             except (TypeError, IndexError):
                 pass
-            results_recarray[name] = values
+            results_recarray[name] = data
         self.write_in_database('Results', results_recarray)
