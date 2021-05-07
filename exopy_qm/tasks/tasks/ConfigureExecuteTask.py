@@ -4,7 +4,7 @@ import importlib.util
 import logging
 from pathlib import Path
 import shutil
-from numpy import zeros
+import numpy as np
 
 import qm.qua
 from atom.api import List, Typed, Str, Value, Bool, set_default
@@ -147,26 +147,19 @@ class ConfigureExecuteTask(InstrumentTask):
                 for e in report.errors():
                     logger.warning(e)
 
+            dt_array = []
+            all_data = []
             for (name, handle) in results:
-                # Create the recarray to save the data
-                dt_array = []
-                for (name, handle) in results:
-                    if name.endswith('_input1') or name.endswith('_input2'):
-                        name = name[:-7]
-                    data = handle.fetch_all(flat_struct=True)
-                    dt_array += [(name, data.dtype, data.shape)]
-                    if handle.has_dataloss():
-                        logger.warning(f"{name} might have data loss")
-                results_recarray = zeros(1, dtype=dt_array)
+                if name.endswith('_input1') or name.endswith('_input2'):
+                    name = name[:-7]
+                all_data.append(handle.fetch_all(flat_struct=True))
+                dt_array += [(name, all_data[-1].dtype, all_data[-1].shape)]
+                self.write_in_database(f"variable_{name}", all_data[-1])
+                if handle.has_dataloss():
+                    logger.warning(f"{name} might have data loss")
 
-                # Save data in the recarray
-                for (name, handle) in results:
-                    if name.endswith('_input1') or name.endswith('_input2'):
-                        name = name[:-7]
-                    data = handle.fetch_all(flat_struct=True)
-                    self.write_in_database(f"variable_{name}", data)
-                    results_recarray[name] = data
-                self.write_in_database('Results', results_recarray)
+            results_recarray = np.array([tuple(all_data)], dtype=dt_array)
+            self.write_in_database('Results', results_recarray)
 
     def refresh_config(self):
         self._post_setattr_path_to_config_file(self.path_to_config_file,
