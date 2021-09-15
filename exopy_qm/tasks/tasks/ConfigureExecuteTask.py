@@ -142,10 +142,10 @@ class ConfigureExecuteTask(InstrumentTask):
         if not self.pause_mode:
             self.driver.wait_for_all_results()
             results = self.driver.get_results()
-            report = self.driver.get_execution_report()
-            if report.has_errors():
-                for e in report.errors():
-                    logger.warning(e)
+            # report = self.driver.get_execution_report()
+            # if report.has_errors():
+            #     for e in report.errors():
+            #         logger.warning(e)
 
             dt_array = []
             all_data = []
