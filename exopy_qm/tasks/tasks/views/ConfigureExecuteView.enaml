@@ -5,6 +5,7 @@ from enaml.core.api import Looper
 from enaml.widgets.api import (CheckBox, GroupBox, Label, Field,
                                ObjectCombo, ToolButton, FileDialogEx,
                                PushButton, Container)
+from enaml.stdlib.mapped_view import MappedView
 from enaml.stdlib.fields import FloatField, Field, IntField
 from enaml.layout.api import hbox, vbox, spacer, align
 from exopy.app.icons.api import get_icon
@@ -27,19 +28,42 @@ enamldef ConfigureExecuteView(InstrView): view:
     """View for the ConfigureExecuteTask.
 
     """
-    constraints = [vbox(hbox(instr_label, instr_selection,pause_mode_label,pause_mode_value, spacer),
+    constraints = [vbox(hbox(instr_label, instr_selection,fetch_mode_label,fetch_mode_value,folder_label,stream_folder_value,path_to_stream_folder_button,filename_label,stream_filename_value),
                         configprog_container,
                         param_container,
                         simulation_container),
-                        align('v_center', instr_label, instr_selection,pause_mode_value,pause_mode_label),
-                        pause_mode_label.width==pause_mode_value.width,
-                        instr_label.width==pause_mode_value.width]
+                        align('v_center', instr_label, instr_selection,fetch_mode_value,fetch_mode_label,folder_label,filename_label),
+                        fetch_mode_label.width==fetch_mode_value.width,
+                        instr_label.width==fetch_mode_value.width]
 
-
-    Label: pause_mode_label:
-        text = 'Pause mode'
-    CheckBox: pause_mode_value:
-        checked := task.pause_mode
+    Label: fetch_mode_label:
+        text = 'fetch mode'
+    ObjectCombo: fetch_mode_value:
+        items << list(task.get_member('fetch_mode').items)
+        selected := task.fetch_mode
+    Label: folder_label:
+        text = 'folder'
+    Field: stream_folder_value:
+        text := task.stream_folder
+        tool_tip = fill("Path to Stream file")
+        enabled << (task.fetch_mode=="Stream") or (task.fetch_mode=="PausePandas")
+    ToolButton: path_to_stream_folder_button:
+        hug_width = 'strong'
+        icon = get_icon(workbench, 'folder-open')
+        clicked ::
+            curr_path = task.stream_folder
+            get_dir = FileDialogEx.get_existing_directory
+            path = get_dir(title='Select a default path',
+                           current_path=curr_path)
+            if path:
+                stream_folder_value.text = path
+        enabled << (task.fetch_mode=="Stream") or (task.fetch_mode=="PausePandas")
+    Label: filename_label:
+        text = 'filename'
+    Field: stream_filename_value:
+        text := task.stream_filename
+        tool_tip = fill("Stream filename")
+        enabled << (task.fetch_mode=="Stream") or (task.fetch_mode=="PausePandas")
 
     GroupBox: configprog_container:
         title = 'Config and program files'

@@ -1,0 +1,47 @@
+import os, sys, subprocess
+from textwrap import fill
+
+from enaml.core.api import Looper
+from enaml.widgets.api import (CheckBox, GroupBox, Label, Field,
+                               ObjectCombo, ToolButton, FileDialogEx,
+                               PushButton, Container)
+from enaml.stdlib.fields import FloatField, Field, IntField
+from enaml.layout.api import hbox, vbox, spacer, align
+from exopy.app.icons.api import get_icon
+from exopy.tasks.api import EVALUATER_TOOLTIP
+from exopy.utils.widgets.qt_completers import QtLineCompleter
+from exopy.measurement.workspace.measurement_edition import MeasEditionView
+
+from .base_instr_view import InstrView
+
+enamldef WaitForAllAndSavePandasView(InstrView): view:
+    """View for the MeasureWithPauseTask.
+
+    """
+    constraints = [vbox(hbox(instr_label, instr_selection,
+                             folder_label,stream_folder_value,path_to_stream_folder_button,
+                             filename_label,stream_filename_value)),
+                        align('v_center', instr_label, instr_selection,
+                              folder_label,filename_label)
+                        ]
+    
+    Label: folder_label:
+        text = 'folder'
+    Field: stream_folder_value:
+        text := task.stream_folder
+        tool_tip = fill("Path to Stream file")
+    ToolButton: path_to_stream_folder_button:
+        hug_width = 'strong'
+        icon = get_icon(workbench, 'folder-open')
+        clicked ::
+            curr_path = task.stream_folder
+            get_dir = FileDialogEx.get_existing_directory
+            path = get_dir(title='Select a default path',
+                           current_path=curr_path)
+            if path:
+                stream_folder_value.text = path
+    Label: filename_label:
+        text = 'filename'
+    Field: stream_filename_value:
+        text := task.stream_filename
+        tool_tip = fill("Stream filename")

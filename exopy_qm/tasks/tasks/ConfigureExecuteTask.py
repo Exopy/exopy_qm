@@ -2,13 +2,22 @@ import ast
 import importlib
 import importlib.util
 import logging
+import numbers
 from pathlib import Path
 import shutil
 import numpy as np
+import pandas as pd
+import os
+import h5py
+import time
+from collections import OrderedDict
 
 import qm.qua
-from atom.api import List, Typed, Str, Value, Bool, set_default
-from exopy.tasks.api import InstrumentTask
+from atom.api import List, Typed, Str, Value, Bool, set_default, Enum, Int
+from exopy.tasks.api import SimpleTask, validators, InstrumentTask
+from exopy.utils.atom_util import ordered_dict_from_pref, ordered_dict_to_pref
+from exopy_hqc_legacy.tasks.tasks.util.save_tasks import _HDF5File
+import numpy
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +27,8 @@ class ParseError(Exception):
 
     """
     pass
+
+_VAL_REAL = validators.Feval(types=numbers.Real)
 
 
 class ConfigureExecuteTask(InstrumentTask):
@@ -62,13 +73,47 @@ class ConfigureExecuteTask(InstrumentTask):
 
     #: Duration of the simulation in ns
     simulation_duration = Str(default="1000").tag(pref=True)
-
-    #: Doesn't wait for the program to end if this is on
-    pause_mode = Bool(False).tag(pref=True)
-
+    
     # : Create the entry which contains all the data return by the OPX in a recarray
     database_entries = set_default({'Results': {}})
+    
+    #: Doesn't wait for the program to end if this is on
+    fetch_mode = Enum('Default', 'Pause', 'PausePandas', 'Stream').tag(pref=True)
+    
+    #: Path to the file to stream
+    stream_folder = Str(default="{default_path}").tag(pref=True)
 
+    #: Name of the file to stream
+    stream_filename = Str(default="measure.h5").tag(pref=True)
+
+    #: Opening mode to use when saving to a file.
+    stream_file_mode = Enum('New', 'Add')
+
+    #: Currently opened file object. (File mode)
+    stream_file_object = Value()
+
+    #: Header to write at the top of the file.
+    stream_header = Str().tag(pref=True)
+
+    #: Flag indicating whether or not initialisation has been performed.
+    stream_initialized = Bool(False)
+
+    #: Data type (float16, float32, etc.)
+    stream_datatype = Enum('float16', 'float32', 'float64').tag(pref=True)
+
+    #: Compression type of the data in the HDF5 file
+    stream_compression = Enum('None', 'gzip').tag(pref=True)
+
+    #: Estimation of the number of calls of this task during the measure.
+    #: This helps h5py to chunk the file appropriately
+    stream_calls_estimation = Str('1').tag(pref=True, feval=_VAL_REAL)
+
+    #: Flag indicating whether or not the data should be saved in swmr mode
+    stream_swmr = Bool(True).tag(pref=True)
+    
+    #: Max number of data. To be used for data fetch.
+    stream_n_data_max = Int(1).tag(pref=True)
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._config_module = None
@@ -98,6 +143,7 @@ class ConfigureExecuteTask(InstrumentTask):
         return test, traceback
 
     def perform(self):
+        self.driver.qmm.clear_all_job_results()
         self._update_parameters()
 
         # Evaluate all parameters
@@ -139,7 +185,7 @@ class ConfigureExecuteTask(InstrumentTask):
         self.driver.set_config(config_to_set)
         self.driver.execute_program(program_to_execute)
 
-        if not self.pause_mode:
+        if self.fetch_mode=='Default':
             self.driver.wait_for_all_results()
             results = self.driver.get_results()
             report = self.driver.get_execution_report()
@@ -150,8 +196,7 @@ class ConfigureExecuteTask(InstrumentTask):
             dt_array = []
             all_data = []
             for (name, handle) in results:
-                if name.endswith('_input1') or name.endswith('_input2'):
-                    name = name[:-7]
+                name = self._strip_adc_name(name)
                 all_data.append(handle.fetch_all(flat_struct=True))
                 dt_array += [(name, all_data[-1].dtype, all_data[-1].shape)]
                 self.write_in_database(f"variable_{name}", all_data[-1])
@@ -160,6 +205,189 @@ class ConfigureExecuteTask(InstrumentTask):
 
             results_recarray = np.array([tuple(all_data)], dtype=dt_array)
             self.write_in_database('Results', results_recarray)
+            
+        if self.fetch_mode=='Pause':
+            pass
+        
+        if self.fetch_mode=='PausePandas':
+            self.driver.qmm.clear_all_job_results()
+            self.save_stream_parameters_pandas(evaluated_parameters)
+
+        if self.fetch_mode=='Stream':
+            self.save_stream_parameters_pandas(evaluated_parameters)
+            self.driver.qmm.clear_all_job_results()
+            results = self.driver.get_results() #res_handle
+            saved_values = {}
+            new_index = {}
+            prev_index = {}
+            for (name, handle) in results: 
+                handle.wait_for_values(1) # we wait for at least one value to appear in each stream
+                prev_index[name] = 0
+            # handle.wait_for_values(1) # we wait for at least one value to appear in a stream
+            # all_data = []
+            # while all([vec.is_processing() for vec in vec_handles]):
+            #     try
+            path = os.path.join(self.stream_folder, self.stream_filename)
+            
+            time.sleep(1)
+            prev_index = 0
+            flag_values_to_fetch = True
+            while results.is_processing() or flag_values_to_fetch:
+                saved_values = {}
+                for (name, handle) in results:
+                    new_index[name] = handle.count_so_far()
+                min_index = min(new_index.values())
+                flag_values_to_fetch = (min(new_index.values())<max(new_index.values()))
+                if min_index>prev_index:
+                    flag_values_to_fetch = True
+                    for (name, handle) in results:
+                        handle.wait_for_values(min_index-prev_index)
+                        new_data = handle.fetch(slice(prev_index, min_index))["value"]
+                        saved_values[name] = new_data
+                    test_list = [len(v) for k,v in saved_values.items()]
+                    assert(min(test_list)==max(test_list))
+                    self.save_stream_results_pandas(saved_values,
+                                        start=prev_index)
+                    # flag_values_to_fetch = prev_index<max(new_index.values())
+                    prev_index = min_index
+                    #time.sleep(1e-1)
+                
+            report = self.driver.get_execution_report()
+            if report.has_errors():
+                for e in report.errors():
+                    logger.warning(e)
+                    
+    def save_stream_results_pandas(self, saved_values ,start=0):
+        full_folder_path = self.format_string(self.stream_folder)
+        filename = self.format_string(self.stream_filename)
+        full_path = os.path.join(full_folder_path, filename)
+        store = pd.HDFStore(full_path, chunksize=1e6)
+        df = pd.DataFrame(saved_values)
+        df.index += start
+        store.append("data", df, index=False)
+        store.close()
+
+    def save_stream_parameters_pandas(self, parameters):
+        full_folder_path = self.format_string(self.stream_folder)
+        filename = self.format_string(self.stream_filename)
+        full_path = os.path.join(full_folder_path, filename)
+        df = pd.DataFrame.from_records([parameters])
+        df.to_hdf(full_path,"parameters")
+            
+    def save_stream_results(self, saved_values,start=0):
+        full_folder_path = self.format_string(self.stream_folder)
+        filename = self.format_string(self.stream_filename)
+        full_path = os.path.join(full_folder_path, filename)
+        for k, v in saved_values.items():
+            with open(full_path+'_' + k + ".dat", "ab") as f:
+                np.savetxt(f, v)
+
+    # def save_stream_results_h5(self, saved_values):
+    #     full_folder_path = self.format_string(self.stream_folder)
+    #     filename = self.format_string(self.stream_filename)
+    #     full_path = os.path.join(full_folder_path, filename)
+    #     with h5py.File(full_path,'a') as h5f:
+    #         for k, v in saved_values.items():
+    #             if not k in h5f.keys():
+    #                 h5f.require_dataset(k, v.shape, v.dtype, data=v,chunks=True,maxshape=(None,))
+    #             else:
+    #                 oldshape = h5f[k].shape
+    #                 h5f[k].resize((oldshape[0]+v.shape[0],))
+    #                 h5f[k][-v.shape[0]:]=v
+    #                 # h5f.require_dataset(k, (v.shape), v.dtype, data=v)
+    #             h5f.close()
+
+    # def save_stream_results_h5(self, saved_values):
+    #     """
+    #     Appends newly acquired data to an HDF5 dataset
+        
+    #     Parameters
+    #     ----------
+    #     saved_values : dict
+    #         dictionnary of saved values.
+
+    #     Returns
+    #     -------
+    #     None.
+
+    #     We are writing the data to the HDF5 dataset in append mode
+    #     Copied from exopy_hqc_legacy/SaveFileHDF5Task
+    #     We are purposedly shunting the exopy database and use only the HDF5 library
+        
+    #     """
+
+    #     # Initialisation.
+    #     if not self.stream_initialized:
+
+    #         self._formatted_labels = []
+    #         full_folder_path = self.format_string(self.stream_folder)
+    #         filename = self.format_string(self.stream_filename)
+    #         full_path = os.path.join(full_folder_path, filename)
+    #         try:
+    #             self.stream_file_object = h5py.File(full_path, 'a')
+    #         except IOError:
+    #             log = logging.getLogger()
+    #             msg = "In {}, failed to open the specified file."
+    #             log.exception(msg.format(self.name))
+    #             self.root.should_stop.set()
+
+    #         self.root.resources['files'][full_path] = self.stream_file_object
+
+    #         f = self.stream_file_object
+    #         for l, value in saved_values.items():
+    #             label = self.format_string(l)
+    #             if isinstance(value, numpy.ndarray):
+    #                 if np.ndim(value) == 1:
+    #                     names = value.dtype.names
+    #                     print(names)
+    #                     if names:
+    #                         for m in names:
+    #                             f.create_dataset(label + '_' + m,
+    #                                               data=value,
+    #                                               compression="gzip",
+    #                                               chunks=True,
+    #                                               maxshape=(None,))
+    #                     else:
+    #                         f.create_dataset(label,
+    #                                           data=value,
+    #                                           compression="gzip",
+    #                                           chunks=True,
+    #                                           maxshape=(None,))
+    #                 else:
+    #                     raise ValueError("can only save an 1D array")
+    #             else:
+    #                 raise ValueError("can only save an ndarray")
+    #         f.attrs['header'] = self.format_string(self.stream_header)
+    #         f.attrs['count_calls'] = 0
+    #         if self.stream_swmr:
+    #             f.swmr_mode = True
+    #         f.flush()
+
+    #         self.stream_initialized = True
+        
+    #     # the data has been initialized: write the data
+    #     else:
+        
+    #         for l, value in saved_values.items():
+    #             label = self.format_string(l)
+    #             # self._formatted_labels.append(label)
+    #             # # value = self.format_and_eval_string(v)
+    #             if isinstance(value, numpy.ndarray):
+    #                 if np.ndim(value) == 1:
+    #                     names = value.dtype.names
+    #                     if names:
+    #                         for m in names:
+    #                             f[label + '_' + m].resize(f[label + '_' + m].shape[0]+value.shape[0], axis=0)
+    #                             f[label + '_' + m][-value.shape[0]:] = value
+    #                     else:
+    #                         f[label].resize(f[label + '_' + m].shape[0]+value.shape[0], axis=0)
+    #                         f[label][-value.shape[0]:] = value
+    #                 else:
+    #                     raise ValueError("can only save 1D array")
+    #             else:
+    #                 raise ValueError("can only save an ndarray")
+
+    #     f.flush()
 
     def refresh_config(self):
         self._post_setattr_path_to_config_file(self.path_to_config_file,
@@ -197,6 +425,9 @@ class ConfigureExecuteTask(InstrumentTask):
 
     #: Module containing the program file
     _program_module = Value()
+
+    #: List of the formatted names of the entries.
+    _formatted_labels = List()
 
     def _post_setattr_path_to_program_file(self, old, new):
         self._program_module = None
@@ -412,3 +643,10 @@ class ConfigureExecuteTask(InstrumentTask):
             de['variable_' + i] = [0.0]
 
         self.database_entries = de
+
+    
+    def _strip_adc_name(self, name):
+        if name.endswith('_input1') or name.endswith('_input2'):
+            return name[:-7]
+        else:
+            return name

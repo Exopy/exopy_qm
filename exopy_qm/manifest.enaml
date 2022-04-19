@@ -85,10 +85,29 @@ enamldef QmManifest(PluginManifest):
                 instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
 
             Task:
+                task = 'MeasureWithPausePandasTask:MeasureWithPausePandasTask'
+                view = 'views.MeasureWithPausePandasView:MeasureWithPausePandasView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+
+            Task:
+                task = 'WaitForAllAndSavePandasTask:WaitForAllAndSavePandasTask'
+                view = 'views.WaitForAllAndSavePandasView:WaitForAllAndSavePandasView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+
+            Task:
                 task = 'ResumeProgramTask:ResumeProgramTask'
                 view = 'views.ResumeProgramView:ResumeProgramView'
                 instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+                
+            Task:
+                task = 'WaitForPauseAndResumeProgramTask:WaitForPauseAndResumeProgramTask'
+                view = 'views.WaitForPauseAndResumeProgramView:WaitForPauseAndResumeProgramView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
 
+            Task:
+                task = 'WaitForPauseTask:WaitForPauseTask'
+                view = 'views.WaitForPauseView:WaitForPauseView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
             Task:
                 task = 'SetIOValuesTask:SetIOValuesTask'
                 view = 'views.SetIOValuesView:SetIOValuesView'

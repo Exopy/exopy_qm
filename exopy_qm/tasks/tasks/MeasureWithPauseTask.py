@@ -26,24 +26,36 @@ class MeasureWithPauseTask(InstrumentTask):
 
         return test, traceback
 
+    # def perform(self):
+    #     # We assume that the program is paused and there is no data to get from the server
+    #     self.driver.resume()
+    #     while not self.driver.is_paused():
+    #         print("not paused")
+    #         time.sleep(0.01)
+
+    #     # check if the data are None: it happens if the server hasn't finished averaging the data
+    #     while True:
+    #         results = self.driver.get_results()
+    #         one_is_none = False
+    #         for (name, handle) in results:
+    #             if handle.fetch_all() is None: # check is one entry of the data is None
+    #                 time.sleep(0.01)
+    #                 one_is_none = True
+    #         if not one_is_none: # wait for all entries to be not None before continuing
+    #             break
+    #         print("some entries are None")
+
     def perform(self):
         # We assume that the program is paused and there is no data to get from the server
-        self.driver.resume()
+        
         while not self.driver.is_paused():
+            #print("not paused")
             time.sleep(0.01)
-
+        self.driver.resume()
         # check if the data are None: it happens if the server hasn't finished averaging the data
-        while True:
-            results = self.driver.get_results()
-            one_is_none = False
-            for (name, handle) in results:
-                if handle.fetch_all() is None: # check is one entry of the data is None
-                    time.sleep(0.01)
-                    one_is_none = True
-            if not one_is_none: # wait for all entries to be not None before continuing
-                break
-
-
+        results = self.driver.get_results()
+        for (name, handle) in results: # We get one data for all the names
+            handle.wait_for_values(1)
 
         # Create the recarray to save the data
         dt_array = []
