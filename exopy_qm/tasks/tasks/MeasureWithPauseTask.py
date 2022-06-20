@@ -50,7 +50,7 @@ class MeasureWithPauseTask(InstrumentTask):
         for (name, handle) in results:
             if name.endswith('_input1') or name.endswith('_input2'):
                 name = name[:-7]
-            data = handle.fetch_all(flat_struct)
+            data = handle.fetch_all(flat_struct=True)
             dt_array += [(name, data.dtype, data.shape)]
             if handle.has_dataloss():
                 logger.warning(f"{name} might have data loss")
