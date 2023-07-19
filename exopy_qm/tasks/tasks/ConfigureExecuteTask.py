@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 import shutil
 import numpy as np
+import time
 
 import qm.qua
 from atom.api import List, Typed, Str, Value, Bool, set_default
@@ -154,12 +155,18 @@ class ConfigureExecuteTask(InstrumentTask):
                     name = name[:-7]
                 all_data.append(handle.fetch_all(flat_struct=True))
                 dt_array += [(name, all_data[-1].dtype, all_data[-1].shape)]
-                self.write_in_database(f"variable_{name}", all_data[-1])
+                try:
+                    self.write_in_database(f"variable_{name}", all_data[-1])
+                except:
+                    logger.warning(f"Unexpected variable {name}")
                 if handle.has_dataloss():
                     logger.warning(f"{name} might have data loss")
 
             results_recarray = np.array([tuple(all_data)], dtype=dt_array)
             self.write_in_database('Results', results_recarray)
+        else:
+            while not self.driver.is_paused():
+                time.sleep(0.001)
 
     def refresh_config(self):
         self._post_setattr_path_to_config_file(self.path_to_config_file,
@@ -396,7 +403,10 @@ class ConfigureExecuteTask(InstrumentTask):
                               and isinstance(i.args[2], ast.Str)):
                             saved_vars.add(i.args[2].s)
                     elif isinstance(i, ast.Call) and isinstance(i.func, ast.Attribute) and i.func.attr in ['save', 'save_all']:
-                        saved_vars.add(i.args[0].s)
+                        try:
+                            saved_vars.add(i.args[0].s)
+                        except:
+                            raise ParseError("Variable name is not a string")
 
         except ParseError:
             logger.error("Unable to parse the program file to find "
