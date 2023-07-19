@@ -115,6 +115,18 @@ class QuantumMachine(BaseInstrument):
     def resume(self):
         self.job.resume()
 
+    def iterate(self):
+        """Iterates the program by resuming it and feeding True to the input sting 'iterate' 
+        """
+        self.job.resume()
+        self.job.insert_input_stream('iterate', True)
+
+    def finish(self):
+        """Finishes the program by resuming it and feeding False to the input sting 'iterate'
+          """
+        self.job.resume()
+        self.job.insert_input_stream('iterate', False)
+
     @requires_config
     def set_output_dc_offset_by_qe(self, element, input, offset):
         self.qmObj.set_output_dc_offset_by_element(element, input, offset)
