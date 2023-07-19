@@ -31,6 +31,7 @@ class MeasureWithPauseTask(InstrumentTask):
         self.driver.resume()
         while not self.driver.is_paused():
             time.sleep(0.01)
+        time.sleep(0.1) #to be adjusted to the time it takes to retrieve the data
 
         # check if the data are None: it happens if the server hasn't finished averaging the data
         while True:

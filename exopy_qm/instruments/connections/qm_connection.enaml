@@ -18,6 +18,8 @@ from exopy.app.icons.api import get_icon
 enamldef QmConnection(BaseConnection):
     #: Reference to the application workbench.
     attr workbench
+    attr host_address: str = '255.255.255.255'
+    attr  port: str = '9510'
 
     alias lib_dir : lib_val.text
 
@@ -37,11 +39,13 @@ enamldef QmConnection(BaseConnection):
     Label: lib_lab:
         text = 'Gateway IP'
     Field: lib_val:
+        enabled << not read_only
         tool_tip = ('If left empty the program will use the IP from the qm-app')
-        placeholder = '255.255.255.255'
+        text := host_address
 
     Label: header_lab:
         text = 'Gateway port'
     Field: header_val:
+        enabled << not read_only
         tool_tip = ('If left empty the program will use the default port ')
-        placeholder = "9510"
+        text := port

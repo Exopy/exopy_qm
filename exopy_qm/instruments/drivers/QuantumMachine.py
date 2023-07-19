@@ -43,10 +43,11 @@ class QuantumMachine(BaseInstrument):
 
         if ip != "" and port != "":
             self.qmm = QuantumMachinesManager(host=ip, port=port)
-        if ip != "" and port == "":
-            self.qmm = QuantumMachinesManager(host=ip, port=9510)
+        elif ip != "" and port == "":
+            self.qmm = QuantumMachinesManager(host=ip)
         else:
-            self.qmm = QuantumMachinesManager(port = 9510)
+            self.qmm = QuantumMachinesManager()
+
 
         self.qmObj = None
         self.job = None
