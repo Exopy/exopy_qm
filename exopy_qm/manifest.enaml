@@ -98,3 +98,11 @@ enamldef QmManifest(PluginManifest):
                 task = 'GetIOValuesTask:GetIOValuesTask'
                 view = 'views.GetIOValuesView:GetIOValuesView'
                 instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+            Task:
+                task = 'IterateProgramTask:IterateProgramTask'
+                view = 'views.IterateProgramView:IterateProgramView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+            Task:
+                task = 'FinishProgramTask:FinishProgramTask'
+                view = 'views.FinishProgramView:FinishProgramView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
