@@ -120,7 +120,7 @@ class QuantumMachine(BaseInstrument):
         """waits for the program to be paused
         """
         while not self.is_paused():
-            time.sleep(0.001)
+            time.sleep(0.01)
         
     def iterate(self):
         """Iterates the program by resuming it and feeding True to the input sting 'iterate' 
