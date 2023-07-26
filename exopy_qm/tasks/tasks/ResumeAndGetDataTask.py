@@ -9,7 +9,7 @@ from exopy.tasks.api import InstrumentTask
 logger = logging.getLogger(__name__)
 
 
-class FinishProgramTask(InstrumentTask):
+class ResumeAndGetDataTask(InstrumentTask):
     """Resume a QM program and finishes it using the 'iterate' input stream.
 
     """
@@ -21,14 +21,14 @@ class FinishProgramTask(InstrumentTask):
 
 
     def check(self, *args, **kwargs):
-        test, traceback = super(FinishProgramTask,
+        test, traceback = super(ResumeAndGetDataTask,
                                 self).check(*args, **kwargs)
 
         return test, traceback
 
     def perform(self):
-        # We assume that the program is paused
-        self.driver.finish()
+        # We assume that the program is paused for the last time
+        self.driver.resume()
 
         self.driver.wait_for_all_results()
         results = self.driver.get_results()

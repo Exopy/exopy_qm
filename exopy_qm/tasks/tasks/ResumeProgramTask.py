@@ -9,3 +9,4 @@ class ResumeProgramTask(InstrumentTask):
 
     def perform(self):
         self.driver.resume()
+        self.driver.wait_for_pause()
