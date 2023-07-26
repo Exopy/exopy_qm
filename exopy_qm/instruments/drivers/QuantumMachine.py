@@ -1,5 +1,6 @@
 import logging
 import tempfile
+import time
 
 from qm.QuantumMachinesManager import QuantumMachinesManager
 from qm import SimulationConfig
@@ -115,6 +116,12 @@ class QuantumMachine(BaseInstrument):
     def resume(self):
         self.job.resume()
 
+    def wait_for_pause(self):
+        """waits for the program to be paused
+        """
+        while not self.is_paused():
+            time.sleep(0.001)
+        
     def iterate(self):
         """Iterates the program by resuming it and feeding True to the input sting 'iterate' 
         """

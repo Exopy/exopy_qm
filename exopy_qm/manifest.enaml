@@ -88,6 +88,10 @@ enamldef QmManifest(PluginManifest):
                 task = 'ResumeProgramTask:ResumeProgramTask'
                 view = 'views.ResumeProgramView:ResumeProgramView'
                 instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
+            Task:
+                task = 'ResumeAndGetDataTask:ResumeAndGetDataTask'
+                view = 'views.ResumeAndGetDataView:ResumeAndGetDataView'
+                instruments = ['exopy_qm.QMArchitecture.QuantumMachine']
 
             Task:
                 task = 'SetIOValuesTask:SetIOValuesTask'

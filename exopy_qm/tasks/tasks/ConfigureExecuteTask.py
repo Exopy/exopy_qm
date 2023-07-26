@@ -165,8 +165,7 @@ class ConfigureExecuteTask(InstrumentTask):
             results_recarray = np.array([tuple(all_data)], dtype=dt_array)
             self.write_in_database('Results', results_recarray)
         else:
-            while not self.driver.is_paused():
-                time.sleep(0.001)
+            self.driver.wait_for_pause()
 
     def refresh_config(self):
         self._post_setattr_path_to_config_file(self.path_to_config_file,

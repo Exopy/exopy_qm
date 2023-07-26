@@ -14,8 +14,8 @@ from exopy.measurement.workspace.measurement_edition import MeasEditionView
 
 from .base_instr_view import InstrView
 
-enamldef ResumeProgramView(InstrView): view:
-    """View for the ResumeProgramTask.
+enamldef ResumeAndGetDataView(InstrView): view:
+    """View for the ResumeAndGetDataTask.
 
     """
     constraints = [hbox(instr_label, instr_selection,spacer)]
